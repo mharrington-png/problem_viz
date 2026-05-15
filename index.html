@@ -1,0 +1,596 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+<meta charset="UTF-8">
+<meta name="viewport" content="width=device-width, initial-scale=1.0">
+<title>Math Alive · Problem Solving Exploration Lab</title>
+<style>
+  @import url('https://fonts.googleapis.com/css2?family=Playfair+Display:ital,wght@0,600;0,700;1,400&family=Source+Sans+3:wght@300;400;600&family=Source+Code+Pro:wght@400;600&display=swap');
+
+  :root {
+    --crimson: #A01C31;
+    --crimson-dark: #7a1525;
+    --navy: #1a2744;
+    --ink: #1a1a1a;
+    --bg: #faf8f5;
+    --warm-white: #ffffff;
+    --rule: #d8d3cc;
+    --caption: #6b6560;
+    --highlight: #fff8e6;
+    --highlight-border: #e8c84a;
+    --code-bg: #f0ede8;
+    --phase1: #2a5c8a;
+    --phase2: #2a7f62;
+  }
+
+  * { box-sizing: border-box; margin: 0; padding: 0; }
+
+  body {
+    background: var(--bg);
+    color: var(--ink);
+    font-family: 'Source Sans 3', sans-serif;
+    font-weight: 300;
+    line-height: 1.65;
+    padding: 2rem 1rem 4rem;
+  }
+
+  .page-header {
+    max-width: 720px;
+    margin: 0 auto 2.5rem;
+    border-bottom: 3px solid var(--crimson);
+    padding-bottom: 1.25rem;
+  }
+
+  .course-tag {
+    font-size: 0.72rem;
+    letter-spacing: 0.14em;
+    text-transform: uppercase;
+    color: var(--crimson);
+    font-weight: 600;
+    margin-bottom: 0.4rem;
+  }
+
+  h1 {
+    font-family: 'Playfair Display', serif;
+    font-size: 2.2rem;
+    color: var(--navy);
+    line-height: 1.15;
+    margin-bottom: 0.4rem;
+  }
+
+  .header-meta { font-size: 0.85rem; color: var(--caption); }
+
+  .container { max-width: 720px; margin: 0 auto; }
+
+  .intro {
+    background: var(--navy);
+    color: #e8e4dc;
+    border-radius: 6px;
+    padding: 1.75rem 2rem;
+    margin-bottom: 2rem;
+    font-size: 0.95rem;
+    line-height: 1.7;
+  }
+
+  .intro strong { color: white; font-weight: 600; }
+
+  .section {
+    background: white;
+    border: 1px solid var(--rule);
+    border-radius: 6px;
+    margin-bottom: 1.5rem;
+    overflow: hidden;
+  }
+
+  .section-header {
+    display: flex;
+    align-items: center;
+    gap: 0.75rem;
+    padding: 1rem 1.5rem;
+    border-bottom: 1px solid var(--rule);
+  }
+
+  .phase-badge {
+    font-size: 0.65rem;
+    font-weight: 700;
+    letter-spacing: 0.1em;
+    text-transform: uppercase;
+    color: white;
+    background: var(--crimson);
+    border-radius: 3px;
+    padding: 3px 8px;
+    flex-shrink: 0;
+  }
+
+  .phase-badge.schedule { background: var(--navy); }
+  .phase-badge.p1       { background: var(--phase1); }
+  .phase-badge.p2       { background: var(--phase2); }
+  .phase-badge.present  { background: var(--crimson); }
+
+  .section-title {
+    font-family: 'Playfair Display', serif;
+    font-size: 1.2rem;
+    color: var(--navy);
+  }
+
+  .section-body { padding: 1.5rem; }
+
+  p { margin-bottom: 0.85rem; font-size: 0.95rem; }
+  p:last-child { margin-bottom: 0; }
+
+  /* ── TIMELINE BAR ── */
+  .timeline {
+    display: flex;
+    gap: 0;
+    margin: 1rem 0;
+    border-radius: 6px;
+    overflow: hidden;
+    height: 40px;
+  }
+
+  .tl-seg {
+    display: flex;
+    align-items: center;
+    justify-content: center;
+    font-size: 0.75rem;
+    font-weight: 600;
+    color: white;
+    letter-spacing: 0.03em;
+    text-align: center;
+    white-space: nowrap;
+    padding: 0 0.5rem;
+  }
+
+  .tl-labels {
+    display: flex;
+    font-size: 0.7rem;
+    color: var(--caption);
+    margin-top: 4px;
+  }
+
+  .tl-lbl { text-align: center; padding: 0 2px; }
+
+  /* ── PROMPT BOX ── */
+  .prompt-box {
+    background: var(--code-bg);
+    border-left: 4px solid var(--navy);
+    border-radius: 0 4px 4px 0;
+    padding: 1.25rem 1.5rem;
+    margin: 1rem 0;
+    font-family: 'Source Code Pro', monospace;
+    font-size: 0.82rem;
+    line-height: 1.7;
+    color: var(--ink);
+    position: relative;
+  }
+
+  .prompt-text { white-space: pre-wrap; display: block; }
+
+  .prompt-box .prompt-label {
+    font-family: 'Source Sans 3', sans-serif;
+    font-size: 0.68rem;
+    font-weight: 700;
+    letter-spacing: 0.1em;
+    text-transform: uppercase;
+    color: var(--caption);
+    display: block;
+    margin-bottom: 0;
+  }
+
+  .prompt-box.p1 { border-left-color: var(--phase1); }
+
+  .prompt-box-header {
+    display: flex;
+    align-items: center;
+    justify-content: space-between;
+    margin-bottom: 0.75rem;
+  }
+
+  .copy-btn {
+    font-family: 'Source Sans 3', sans-serif;
+    font-size: 0.72rem;
+    font-weight: 600;
+    letter-spacing: 0.06em;
+    text-transform: uppercase;
+    color: var(--navy);
+    background: white;
+    border: 1px solid var(--rule);
+    border-radius: 3px;
+    padding: 4px 10px;
+    cursor: pointer;
+    transition: background 0.15s, color 0.15s;
+    flex-shrink: 0;
+  }
+
+  .copy-btn:hover { background: var(--navy); color: white; }
+  .copy-btn.copied { background: var(--phase2); color: white; border-color: var(--phase2); }
+
+  /* ── CALLOUT ── */
+  .callout {
+    background: var(--highlight);
+    border: 1px solid var(--highlight-border);
+    border-radius: 4px;
+    padding: 1rem 1.25rem;
+    margin: 1rem 0;
+    font-size: 0.9rem;
+    line-height: 1.6;
+  }
+
+  .callout-icon { margin-right: 0.35rem; }
+
+  /* ── TOPIC GRID ── */
+  .topic-grid {
+    display: grid;
+    grid-template-columns: 1fr 1fr;
+    gap: 0.5rem;
+    margin: 0.75rem 0;
+  }
+
+  .topic-item {
+    background: var(--bg);
+    border: 1px solid var(--rule);
+    border-radius: 4px;
+    padding: 0.6rem 0.85rem;
+    font-size: 0.85rem;
+  }
+
+  .topic-item .t-name { font-weight: 600; color: var(--navy); }
+  .topic-item .t-hint { font-size: 0.75rem; color: var(--caption); margin-top: 2px; line-height: 1.4; }
+
+  /* ── SPEC TABLE ── */
+  .spec-table {
+    width: 100%;
+    border-collapse: collapse;
+    font-size: 0.85rem;
+    margin: 1rem 0;
+  }
+
+  .spec-table th {
+    background: var(--navy);
+    color: rgba(255,255,255,0.85);
+    padding: 0.55rem 0.85rem;
+    text-align: left;
+    font-size: 0.72rem;
+    font-weight: 600;
+    letter-spacing: 0.07em;
+    text-transform: uppercase;
+  }
+
+  .spec-table td {
+    padding: 0.65rem 0.85rem;
+    vertical-align: top;
+    border-bottom: 1px solid var(--rule);
+    line-height: 1.45;
+  }
+
+  .spec-table tr:last-child td { border-bottom: none; }
+  .spec-table tr:nth-child(even) td { background: var(--bg); }
+
+  .too-vague { color: var(--caption); font-style: italic; }
+  .too-vague::before { content: '✗ '; color: #c0392b; font-style: normal; font-weight: 600; }
+  .just-right::before { content: '✓ '; color: #27ae60; font-weight: 600; }
+
+  /* ── CHECKLIST ── */
+  .checklist { list-style: none; margin: 0.75rem 0; }
+
+  .checklist li {
+    font-size: 0.92rem;
+    padding: 0.3rem 0 0.3rem 1.75rem;
+    position: relative;
+    border-bottom: 1px dashed var(--rule);
+  }
+
+  .checklist li:last-child { border-bottom: none; }
+
+  .checklist li::before {
+    content: '☐';
+    position: absolute;
+    left: 0;
+    color: var(--crimson);
+    font-size: 1rem;
+  }
+
+  /* ── RUBRIC ── */
+  .rubric {
+    width: 100%;
+    border-collapse: collapse;
+    font-size: 0.85rem;
+    margin-top: 0.75rem;
+  }
+
+  .rubric th {
+    background: var(--navy);
+    color: white;
+    padding: 0.6rem 0.75rem;
+    text-align: left;
+    font-size: 0.75rem;
+    letter-spacing: 0.05em;
+    text-transform: uppercase;
+  }
+
+  .rubric td {
+    padding: 0.65rem 0.75rem;
+    border-bottom: 1px solid var(--rule);
+    vertical-align: top;
+  }
+
+  .rubric tr:last-child td { border-bottom: none; }
+  .rubric tr:nth-child(even) td { background: var(--bg); }
+
+  .pts {
+    font-family: 'Playfair Display', serif;
+    font-size: 1rem;
+    color: var(--crimson);
+    font-weight: 700;
+    white-space: nowrap;
+  }
+
+  /* ── MISC ── */
+  h3 {
+    font-family: 'Playfair Display', serif;
+    font-size: 1rem;
+    color: var(--navy);
+    margin: 1.1rem 0 0.4rem;
+  }
+
+  h3:first-child { margin-top: 0; }
+  strong { font-weight: 600; }
+  code {
+    font-family: 'Source Code Pro', monospace;
+    font-size: 0.85em;
+    background: var(--code-bg);
+    padding: 1px 5px;
+    border-radius: 3px;
+  }
+
+  .footer {
+    max-width: 720px;
+    margin: 2rem auto 0;
+    font-size: 0.75rem;
+    color: var(--caption);
+    text-align: center;
+    border-top: 1px solid var(--rule);
+    padding-top: 1rem;
+  }
+
+  @media (max-width: 560px) {
+    h1 { font-size: 1.7rem; }
+    .topic-grid { grid-template-columns: 1fr; }
+    .prompt-box { font-size: 0.75rem; }
+  }
+</style>
+</head>
+<body>
+
+<div class="page-header">
+  <p class="course-tag">Problem Solving · Vibe-Coding Exploration</p>
+  <h1>Math Alive</h1>
+  <p class="header-meta">Pairs project &nbsp;·&nbsp; Due Friday, May 15 &nbsp;·&nbsp; 3-minute presentation</p>
+</div>
+
+<div class="container">
+
+  <div class="intro">
+    <strong>The big idea:</strong> You've spent the semester wrestling with problems — building arguments, finding structure, and reasoning carefully. Now you're going to use AI as a coding partner to build something that makes one of those ideas <em>visible</em>. Not a static picture — something a viewer can push on, explore, and learn from. The math does the driving; the AI writes the code.
+  </div>
+
+  <!-- ══════════════════════════════════════
+       SCHEDULE
+  ══════════════════════════════════════ -->
+  <div class="section">
+    <div class="section-header">
+      <span class="phase-badge schedule">Schedule</span>
+      <span class="section-title">How These Days Break Down</span>
+    </div>
+    <div class="section-body">
+      <div class="timeline">
+        <div class="tl-seg" style="background:var(--phase1);flex:5">Day 1 · Choose, scope, and build</div>
+        <div class="tl-seg" style="background:var(--crimson);flex:4">Day 2 · Present &amp; Reflect</div>
+      </div>
+      <div class="tl-labels">
+        <div class="tl-lbl" style="flex:5"><strong>Thursday 5/14 · 65 min · submit HTML + transcripts</strong></div>
+        <div class="tl-lbl" style="flex:4"><strong>Friday 5/15 · 40 min · presentations + written reflection</strong></div>
+      </div>
+    </div>
+  </div>
+
+  <!-- ══════════════════════════════════════
+       DAY 1 / PHASE 1: CHOOSE YOUR TOPIC
+  ══════════════════════════════════════ -->
+  <div class="section">
+    <div class="section-header">
+      <span class="phase-badge p1">Phase 1</span>
+      <span class="section-title">Choose Your Topic</span>
+    </div>
+    <div class="section-body">
+      <p>Pick a problem or idea from the course that you found interesting, surprising, or genuinely hard to understand. Your visualization should help a viewer see something they couldn't see from a textbook definition alone.</p>
+
+      <h3>Topics from this semester</h3>
+      <div class="topic-grid">
+        <div class="topic-item">
+          <div class="t-name">Algebra &amp; systems</div>
+          <div class="t-hint">Systems of equations, intersection as solution, parallel/coincident cases</div>
+        </div>
+        <div class="topic-item">
+          <div class="t-name">Graph theory</div>
+          <div class="t-hint">Nodes, edges, degree sequences, Euler circuits, connectivity</div>
+        </div>
+        <div class="topic-item">
+          <div class="t-name">Counting</div>
+          <div class="t-hint">Permutations, combinations, Pascal's triangle, inclusion-exclusion</div>
+        </div>
+        <div class="topic-item">
+          <div class="t-name">Probability</div>
+          <div class="t-hint">Sample spaces, conditional probability, simulations, expected value</div>
+        </div>
+        <div class="topic-item">
+          <div class="t-name">Combinatorial game theory</div>
+          <div class="t-hint">Nim, Chomp, Poison — P-positions, N-positions, game trees, strategy</div>
+        </div>
+        <div class="topic-item">
+          <div class="t-name">Symmetry</div>
+          <div class="t-hint">Rotational and reflective symmetry, equivalent positions, pruning game trees</div>
+        </div>
+        <div class="topic-item">
+          <div class="t-name">Number theory</div>
+          <div class="t-hint">GCD, LCM, Euclidean algorithm, divisibility, Chicken McNugget theorem</div>
+        </div>
+      </div>
+
+      <h3>The Specificity Challenge</h3>
+      <p>The most important thing you'll do before writing any prompt is describe your idea precisely. Vague topics produce vague tools. Here's the difference:</p>
+
+      <table class="spec-table">
+        <thead>
+          <tr>
+            <th>Too vague</th>
+            <th>Specific enough to build</th>
+          </tr>
+        </thead>
+        <tbody>
+          <tr>
+            <td class="too-vague">Visualize symmetry</td>
+            <td class="just-right">Show how a game tree for a symmetric Chomp board can be collapsed using rotational equivalence — highlighting which branches are identical by symmetry so I can see why a player only needs to consider half the moves</td>
+          </tr>
+          <tr>
+            <td class="too-vague">Show GCD somehow</td>
+            <td class="just-right">Animate the Euclidean algorithm step by step for two numbers I enter, showing each division as a geometric rectangle-fitting picture where each remainder becomes the new smaller rectangle</td>
+          </tr>
+        </tbody>
+      </table>
+
+      <p>The test: can a partner read your description and immediately know exactly what your artifact will show? Swap with your pair partner before writing the kickoff prompt. Revise until they can.</p>
+    </div>
+  </div>
+
+  <!-- ══════════════════════════════════════
+       DAY 1 / PHASE 2: BUILD
+  ══════════════════════════════════════ -->
+  <div class="section">
+    <div class="section-header">
+      <span class="phase-badge p1">Phase 2</span>
+      <span class="section-title">Build Your Visualization</span>
+    </div>
+    <div class="section-body">
+      <p>Open <strong><a href="https://claude.ai" target="_blank" style="color:var(--phase1)">claude.ai</a></strong> and start a new conversation. Copy the prompt below, paste it in, and answer Claude's questions before it builds anything. The AI writes the code; you make every decision about what the visualization shows and what needs to change.</p>
+
+      <div class="callout">
+        <span class="callout-icon">🛠️</span> <strong>Before pasting the prompt</strong>, turn on <em>Artifacts</em> in Claude — this lets you see the visualization as it's built. Look for the Artifacts toggle in the toolbar before you paste.
+      </div>
+
+      <div class="prompt-box p1">
+        <div class="prompt-box-header">
+          <span class="prompt-label">📋 Paste this prompt into Claude to start</span>
+          <button class="copy-btn" onclick="copyPrompt(this)">Copy</button>
+        </div>
+        <span class="prompt-text">You are my math visualization partner. I am a student in a Problem Solving course and I want to use you as a coding partner to build an interactive HTML visualization of a mathematical idea from my course.
+
+Before building anything, please ask me these four questions — one at a time — and wait for my answer before asking the next:
+
+1. What specific mathematical idea, problem, or structure do you want to visualize? Describe it precisely: what will a viewer see, what will they be able to interact with, and what question does your visualization answer?
+
+2. What is the key insight you want the visualization to make obvious — the thing that someone couldn't easily see from reading a textbook?
+
+3. What should the viewer be able to change, drag, click, or control? (The artifact must let someone explore, not just watch.)
+
+4. Are there edge cases or interesting extreme inputs your visualization should handle well?
+
+After I answer all four questions, build the visualization as a single self-contained HTML file I can open in a browser. Make it clean and polished — good fonts, clear labels, and enough visual space to see what's happening. The math should be the star, not the interface.
+
+After the first build, ask me: what does this show well, and what does it still get wrong or leave out?</span>
+      </div>
+
+      <h3>As You Work</h3>
+      <ul class="checklist">
+        <li><strong>You are the mathematician.</strong> Claude writes the code. If Claude produces something mathematically wrong — and it will — catching and correcting that is part of the assignment.</li>
+        <li><strong>Push back.</strong> When the first build doesn't match what you had in mind, describe exactly what's wrong and ask for a specific change. Your transcript should show you directing, not just accepting.</li>
+        <li><strong>Save often.</strong> Before making a big change, download the working version. If something breaks, ask Claude to fix only that part — or to rewrite the full file cleanly while keeping all existing features.</li>
+      </ul>
+
+      <h3>End-of-Class Submission</h3>
+      <p>By the end of today's class, submit two things to Google Classroom: your <code>lastname1_lastname2.html</code> file and your full chat transcript. Export or copy the transcript as a PDF or shared link. The transcript is evidence that you were directing the work — it should show you asking questions, pushing back, and making decisions.</p>
+    </div>
+  </div>
+
+  <!-- ══════════════════════════════════════
+       PRESENTATION
+  ══════════════════════════════════════ -->
+  <div class="section">
+    <div class="section-header">
+      <span class="phase-badge present">Present</span>
+      <span class="section-title">Friday Presentations · 3 Minutes</span>
+    </div>
+    <div class="section-body">
+      <p>Presentations are on <strong>Friday, May 15</strong>. Each pair has exactly <strong>3 minutes</strong>. You'll open your HTML file in the browser and walk the class through your artifact. You are not summarizing your process — you are showing what the visualization reveals about the mathematics.</p>
+
+      <div class="callout" style="border-color:var(--crimson);background:#fff0f2">
+        <span class="callout-icon">💭</span> <strong>Each partner describes one decision.</strong> During your 3 minutes, each person on the team names one specific decision the group made while building — a choice about what to show, what to add, or what to change — and explains why that decision makes the math clearer.
+      </div>
+
+      <h3>Your 3 Minutes Should Cover</h3>
+      <ul class="checklist">
+        <li><strong>Demo the artifact.</strong> Open it live and show it working. Let the interaction speak first.</li>
+        <li><strong>Name the mathematical idea.</strong> What problem or concept did you choose, and why did it seem worth visualizing?</li>
+        <li><strong>Each partner: one decision.</strong> What is one choice you made during the build, and how does it serve the mathematical understanding you were aiming for?</li>
+      </ul>
+
+      <h3>How You'll Be Assessed</h3>
+      <table class="rubric">
+        <thead>
+          <tr>
+            <th style="width:42%">What We're Looking For</th>
+            <th>What It Means</th>
+            <th style="width:10%">Pts</th>
+          </tr>
+        </thead>
+        <tbody>
+          <tr>
+            <td><strong>Artifact</strong></td>
+            <td>A working interactive HTML file that reveals something non-obvious about the mathematical idea; math is correct; interactivity is meaningful, not just decorative</td>
+            <td><span class="pts">2</span></td>
+          </tr>
+          <tr>
+            <td><strong>Presentation</strong></td>
+            <td>Live demo works; both partners explain a specific decision and connect it to mathematical clarity; 3-minute limit respected</td>
+            <td><span class="pts">2</span></td>
+          </tr>
+          <tr>
+            <td><strong>Reflection</strong></td>
+            <td>Written reflection completed honestly in class on Friday</td>
+            <td><span class="pts">1</span></td>
+          </tr>
+          <tr>
+            <td><strong>Chat transcript</strong></td>
+            <td>Submitted with the HTML file; shows the pair directing the AI — proposing, evaluating, and pushing back — not just accepting the first output</td>
+            <td><span class="pts">1</span></td>
+          </tr>
+        </tbody>
+      </table>
+
+      <div class="callout" style="margin-top:1rem">
+        <span class="callout-icon">📌</span> After presentations, you'll complete a written reflection using the class reflection tool. Your finished HTML file will be collected and displayed in the class gallery.
+      </div>
+    </div>
+  </div>
+
+</div><!-- /container -->
+
+<div class="footer">
+  Problem Solving &nbsp;·&nbsp; Middlesex School &nbsp;·&nbsp; May 2026
+</div>
+
+<script>
+function copyPrompt(btn) {
+  const text = btn.closest('.prompt-box').querySelector('.prompt-text').innerText;
+  navigator.clipboard.writeText(text).then(() => {
+    btn.textContent = 'Copied!';
+    btn.classList.add('copied');
+    setTimeout(() => {
+      btn.textContent = 'Copy';
+      btn.classList.remove('copied');
+    }, 2000);
+  });
+}
+</script>
+</body>
+</html>
