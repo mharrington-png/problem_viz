@@ -1,0 +1,819 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+<meta charset="UTF-8">
+<meta name="viewport" content="width=device-width, initial-scale=1.0">
+<title>Chomp — Sleek Game Tree Explorer</title>
+<style>
+  :root {
+    --bg: #080a12;
+    --bg2: #111827;
+    --glass: rgba(17, 24, 39, .72);
+    --glass-strong: rgba(15, 23, 42, .92);
+    --border: rgba(148, 163, 184, .18);
+    --border-strong: rgba(148, 163, 184, .32);
+    --accent: #8b5cf6;
+    --accent2: #06b6d4;
+    --green: #22c55e;
+    --red: #fb7185;
+    --yellow: #facc15;
+    --text: #f8fafc;
+    --muted: #94a3b8;
+    --muted2: #64748b;
+    --chocolate: #6f3718;
+    --choc-light: #d28a4e;
+    --poison: #ef4444;
+    --shadow: 0 24px 80px rgba(0,0,0,.45);
+    --radius: 22px;
+  }
+
+  * { box-sizing: border-box; margin: 0; padding: 0; }
+
+  html { background: var(--bg); }
+
+  body {
+    color: var(--text);
+    font-family: Inter, ui-sans-serif, system-ui, -apple-system, BlinkMacSystemFont, "Segoe UI", sans-serif;
+    min-height: 100vh;
+    display: flex;
+    flex-direction: column;
+    background:
+      radial-gradient(circle at 12% 8%, rgba(139, 92, 246, .22), transparent 32%),
+      radial-gradient(circle at 86% 18%, rgba(6, 182, 212, .15), transparent 30%),
+      linear-gradient(145deg, #070815 0%, #101827 55%, #060812 100%);
+  }
+
+  body::before {
+    content: "";
+    position: fixed;
+    inset: 0;
+    pointer-events: none;
+    background-image: linear-gradient(rgba(255,255,255,.035) 1px, transparent 1px), linear-gradient(90deg, rgba(255,255,255,.035) 1px, transparent 1px);
+    background-size: 44px 44px;
+    mask-image: linear-gradient(to bottom, rgba(0,0,0,.7), transparent 80%);
+  }
+
+  header {
+    padding: 20px clamp(18px, 4vw, 42px);
+    border-bottom: 1px solid var(--border);
+    display: flex;
+    align-items: center;
+    justify-content: space-between;
+    flex-wrap: wrap;
+    gap: 14px;
+    position: sticky;
+    top: 0;
+    z-index: 10;
+    backdrop-filter: blur(18px);
+    background: rgba(8, 10, 18, .72);
+  }
+
+  header h1 {
+    font-size: clamp(1.2rem, 2vw, 1.7rem);
+    font-weight: 800;
+    letter-spacing: -.04em;
+    display: flex;
+    align-items: center;
+    gap: 8px;
+  }
+  header h1 span {
+    background: linear-gradient(90deg, #f8fafc, #a78bfa 55%, #67e8f9);
+    -webkit-background-clip: text;
+    color: transparent;
+  }
+
+  .controls {
+    display: flex;
+    gap: 10px;
+    align-items: center;
+    flex-wrap: wrap;
+  }
+  .controls label {
+    font-size: .82rem;
+    color: var(--muted);
+    display: flex;
+    align-items: center;
+    gap: 8px;
+  }
+
+  select, button {
+    background: rgba(15, 23, 42, .78);
+    border: 1px solid var(--border);
+    color: var(--text);
+    padding: 8px 13px;
+    border-radius: 999px;
+    font-size: .84rem;
+    cursor: pointer;
+    box-shadow: 0 8px 28px rgba(0,0,0,.18);
+    transition: transform .16s ease, border-color .16s ease, background .16s ease;
+  }
+  select:hover, button:hover { border-color: rgba(139, 92, 246, .75); transform: translateY(-1px); }
+  button.primary {
+    background: linear-gradient(135deg, var(--accent), #5b21b6);
+    border-color: rgba(255,255,255,.2);
+    font-weight: 700;
+  }
+  button.primary:hover { background: linear-gradient(135deg, #a78bfa, #6d28d9); }
+  .toggle-btn input[type=checkbox] { accent-color: var(--accent); }
+
+  main {
+    flex: 1;
+    display: grid;
+    grid-template-columns: minmax(390px, .95fr) minmax(420px, 1.05fr);
+    gap: 20px;
+    padding: clamp(16px, 3vw, 30px);
+    overflow: hidden;
+  }
+
+  .left-panel, .right-panel {
+    display: flex;
+    flex-direction: column;
+    overflow: hidden;
+    border: 1px solid var(--border);
+    border-radius: var(--radius);
+    background: linear-gradient(180deg, rgba(15,23,42,.78), rgba(15,23,42,.55));
+    backdrop-filter: blur(20px);
+    box-shadow: var(--shadow);
+  }
+
+  .panel-header {
+    padding: 15px 20px;
+    border-bottom: 1px solid var(--border);
+    font-size: .72rem;
+    font-weight: 800;
+    text-transform: uppercase;
+    letter-spacing: .13em;
+    color: var(--muted);
+    display: flex;
+    justify-content: space-between;
+    align-items: center;
+    background: rgba(255,255,255,.025);
+  }
+
+  .panel-body {
+    flex: 1;
+    overflow: auto;
+    padding: clamp(18px, 3vw, 30px);
+    display: flex;
+    flex-direction: column;
+    align-items: center;
+    justify-content: flex-start;
+  }
+
+  .status-bar {
+    background: rgba(2, 6, 23, .55);
+    border: 1px solid var(--border);
+    border-radius: 18px;
+    padding: 12px 16px;
+    margin-bottom: 22px;
+    width: min(100%, 560px);
+    text-align: center;
+    font-size: .92rem;
+    font-weight: 650;
+    min-height: 46px;
+    display: flex;
+    align-items: center;
+    justify-content: center;
+    gap: 9px;
+    box-shadow: inset 0 1px 0 rgba(255,255,255,.04);
+  }
+  .status-bar .dot {
+    width: 9px;
+    height: 9px;
+    border-radius: 50%;
+    display: inline-block;
+    box-shadow: 0 0 18px currentColor;
+  }
+  .dot.you { background: var(--green); color: var(--green); }
+  .dot.cpu { background: var(--red); color: var(--red); }
+  .dot.win { background: var(--yellow); color: var(--yellow); }
+
+  #board-container {
+    display: flex;
+    flex-direction: column;
+    align-items: center;
+    gap: 7px;
+    padding: 16px;
+    border-radius: 26px;
+    background: rgba(2, 6, 23, .38);
+    border: 1px solid var(--border);
+  }
+  .board-row { display: flex; gap: 7px; }
+  .cell {
+    width: 56px;
+    height: 56px;
+    border-radius: 16px;
+    cursor: pointer;
+    display: flex;
+    align-items: center;
+    justify-content: center;
+    font-size: 1.28rem;
+    transition: transform .14s ease, filter .14s ease, border-color .14s ease, box-shadow .14s ease;
+    position: relative;
+    border: 1px solid transparent;
+    user-select: none;
+  }
+  .cell.alive {
+    background:
+      linear-gradient(145deg, rgba(255,255,255,.16), rgba(255,255,255,0) 32%),
+      linear-gradient(135deg, var(--choc-light), var(--chocolate));
+    border-color: rgba(255,255,255,.18);
+    box-shadow: 0 10px 24px rgba(72, 32, 12, .42), inset 0 -5px 10px rgba(0,0,0,.18);
+  }
+  .cell.alive:hover {
+    transform: translateY(-3px) scale(1.04);
+    filter: brightness(1.13);
+    border-color: rgba(167, 139, 250, .9);
+    box-shadow: 0 14px 30px rgba(139, 92, 246, .24), 0 10px 24px rgba(72, 32, 12, .35);
+  }
+  .cell.alive.highlight-move {
+    border-color: var(--yellow);
+    filter: brightness(1.25);
+  }
+  .cell.removed {
+    background: rgba(15, 23, 42, .5);
+    border-color: rgba(148, 163, 184, .08);
+    cursor: default;
+    box-shadow: inset 0 0 0 1px rgba(255,255,255,.02);
+  }
+  .cell.poison {
+    background:
+      radial-gradient(circle at 35% 30%, rgba(255,255,255,.22), transparent 24%),
+      linear-gradient(135deg, #fb7185, #7f1d1d 70%);
+    border-color: rgba(255,255,255,.18);
+    box-shadow: 0 0 34px rgba(239, 68, 68, .28), inset 0 -5px 10px rgba(0,0,0,.2);
+  }
+  .cell.poison:hover { transform: translateY(-3px) scale(1.04); border-color: #fecdd3; }
+  .coord-label {
+    font-size: .58rem;
+    color: rgba(248, 250, 252, .62);
+    position: absolute;
+    bottom: 5px;
+    right: 7px;
+    opacity: .7;
+    font-weight: 700;
+  }
+
+  .legend {
+    display: flex;
+    gap: 12px;
+    margin-top: 18px;
+    flex-wrap: wrap;
+    justify-content: center;
+  }
+  .legend-item {
+    display: flex;
+    align-items: center;
+    gap: 7px;
+    font-size: .76rem;
+    color: var(--muted);
+    background: rgba(2, 6, 23, .32);
+    border: 1px solid var(--border);
+    border-radius: 999px;
+    padding: 6px 10px;
+  }
+  .legend-swatch { width: 14px; height: 14px; border-radius: 5px; }
+
+  .theory-box {
+    background: rgba(2, 6, 23, .35);
+    border: 1px solid var(--border);
+    border-radius: 18px;
+    padding: 16px 18px;
+    margin-top: 20px;
+    width: min(100%, 650px);
+    font-size: .84rem;
+    line-height: 1.65;
+    color: var(--muted);
+  }
+  .theory-box strong { color: var(--text); }
+  .theory-box .tag {
+    display: inline-block;
+    background: rgba(148, 163, 184, .12);
+    border: 1px solid var(--border);
+    border-radius: 999px;
+    padding: 2px 8px;
+    font-size: .72rem;
+    margin-right: 4px;
+    font-weight: 800;
+  }
+  .tag.n-pos { color: #86efac; }
+  .tag.p-pos { color: #fda4af; }
+
+  #tree-container {
+    width: 100%;
+    min-height: 500px;
+    position: relative;
+    border-radius: 18px;
+    background: rgba(2, 6, 23, .26);
+    border: 1px solid var(--border);
+    padding: 8px;
+  }
+  #tree-svg { width: 100%; overflow: visible; }
+  .tree-node circle { stroke-width: 2; cursor: pointer; transition: r .15s, filter .15s; }
+  .tree-node:hover circle { filter: brightness(1.2); }
+  .tree-node text {
+    font-size: 9px;
+    fill: var(--text);
+    text-anchor: middle;
+    dominant-baseline: middle;
+    pointer-events: none;
+    font-weight: 700;
+  }
+  .tree-edge { stroke: rgba(148, 163, 184, .28); stroke-width: 1.5; fill: none; }
+  .tree-edge.active { stroke: rgba(139, 92, 246, .9); stroke-width: 2.5; }
+  .tree-node.current circle { stroke: white !important; stroke-width: 3; filter: drop-shadow(0 0 12px rgba(255,255,255,.45)); }
+
+  .move-history { width: 100%; margin-top: 14px; }
+  .move-history h4 {
+    font-size: .72rem;
+    text-transform: uppercase;
+    letter-spacing: .12em;
+    color: var(--muted);
+    margin-bottom: 9px;
+  }
+  .move-list { display: flex; flex-wrap: wrap; gap: 7px; }
+  .move-chip {
+    background: rgba(2, 6, 23, .42);
+    border: 1px solid var(--border);
+    border-radius: 999px;
+    padding: 5px 11px;
+    font-size: .77rem;
+    font-weight: 700;
+  }
+  .move-chip.you-chip { border-color: rgba(34, 197, 94, .55); color: #86efac; }
+  .move-chip.cpu-chip { border-color: rgba(251, 113, 133, .55); color: #fda4af; }
+
+  .n-pos-color { color: var(--green); }
+  .p-pos-color { color: var(--red); }
+
+  @media (max-width: 920px) {
+    main { grid-template-columns: 1fr; overflow: auto; }
+    .left-panel, .right-panel { min-height: 520px; }
+  }
+
+  @media (max-width: 560px) {
+    header { align-items: flex-start; }
+    .controls { width: 100%; }
+    .cell { width: 43px; height: 43px; border-radius: 12px; font-size: 1rem; }
+    #board-container { gap: 5px; padding: 10px; }
+    .board-row { gap: 5px; }
+  }
+</style>
+</head>
+<body>
+<header>
+  <h1>🍫 <span>Chomp</span></h1>
+  <div class="controls">
+    <label>Board size:
+      <select id="size-select">
+        <option value="3">3 × 3</option>
+        <option value="4" selected>4 × 4</option>
+        <option value="5">5 × 5</option>
+      </select>
+    </label>
+    <label class="toggle-btn">
+      <input type="checkbox" id="tree-toggle" checked>
+      Show game tree
+    </label>
+    <button class="primary" id="reset-btn">↺ New Game</button>
+  </div>
+</header>
+
+<main>
+  <div class="left-panel">
+    <div class="panel-header">
+      <span>Game Board</span>
+      <span id="turn-indicator" style="color:var(--green)">● Your turn</span>
+    </div>
+    <div class="panel-body">
+      <div class="status-bar" id="status-bar">
+        <span class="dot you"></span> Click any square to start — you go first!
+      </div>
+      <div id="board-container"></div>
+      <div class="legend">
+        <div class="legend-item">
+          <div class="legend-swatch" style="background:linear-gradient(135deg,#c8733a,#7c3f1e);border:2px solid #a0522d"></div>
+          Remaining square
+        </div>
+        <div class="legend-item">
+          <div class="legend-swatch" style="background:linear-gradient(135deg,#991b1b,#7f1d1d);border:2px solid #dc2626"></div>
+          ☠ Poison (lose)
+        </div>
+        <div class="legend-item">
+          <div class="legend-swatch" style="background:#1e2030;border:2px solid #252840"></div>
+          Eaten
+        </div>
+      </div>
+      <div class="theory-box" id="theory-box">
+        <strong>How Chomp works:</strong> Players alternate removing a square and everything above/right of it.
+        Whoever is <em>forced</em> to eat the <span style="color:var(--red)">☠ poison</span> (bottom-left) loses.<br><br>
+        <strong>Key insight:</strong> Player 1 always has a <em>winning strategy</em> on any rectangular board larger than 1×1 — but we often can't say <em>what</em> it is! This is a famous non-constructive proof.<br><br>
+        <span class="tag n-pos">N-position</span> = Next player wins &nbsp;|&nbsp; <span class="tag p-pos">P-position</span> = Previous player wins (current player loses)
+      </div>
+    </div>
+  </div>
+
+  <div class="right-panel" id="right-panel">
+    <div class="panel-header">
+      <span>Game Tree</span>
+      <span id="tree-status" style="font-size:.75rem;color:var(--accent)">Builds as you play</span>
+    </div>
+    <div class="panel-body" style="padding:12px">
+      <div id="tree-container">
+        <svg id="tree-svg"></svg>
+      </div>
+      <div class="move-history">
+        <h4>Move History</h4>
+        <div class="move-list" id="move-list"></div>
+      </div>
+    </div>
+  </div>
+</main>
+
+<script>
+// ─── State ────────────────────────────────────────────────────────────────────
+let N = 4;
+let board = [];          // board[r][c] = true if alive
+let currentTurn = 'you'; // 'you' | 'cpu'
+let gameOver = false;
+let moveHistory = [];    // [{who, row, col}]
+
+// Tree nodes: [{id, boardKey, parentId, move, pos}]  pos = 'N'|'P'
+let treeNodes = [];
+let treeEdges = [];
+let currentNodeId = 0;
+let nodeIdCounter = 0;
+
+// P/N position cache
+const posCache = {};
+
+// ─── Board helpers ────────────────────────────────────────────────────────────
+function initBoard() {
+  board = [];
+  for (let r = 0; r < N; r++) {
+    board[r] = [];
+    for (let c = 0; c < N; c++) board[r][c] = true;
+  }
+}
+
+function boardKey(b) {
+  return b.map(row => row.map(v => v ? '1' : '0').join('')).join('|');
+}
+
+function cloneBoard(b) {
+  return b.map(row => [...row]);
+}
+
+function applyMove(b, r, c) {
+  const nb = cloneBoard(b);
+  // Row 0 is the bottom row because renderBoard() draws from N - 1 down to 0.
+  // In Chomp, choosing a square removes that square and everything above/right of it.
+  // Therefore rows r through N - 1 are removed, not rows 0 through r.
+  for (let rr = r; rr < N; rr++)
+    for (let cc = c; cc < N; cc++)
+      nb[rr][cc] = false;
+  return nb;
+}
+
+function validMoves(b) {
+  const moves = [];
+  for (let r = 0; r < N; r++)
+    for (let c = 0; c < N; c++)
+      if (b[r][c] && !(r === 0 && c === 0)) moves.push([r, c]);
+  return moves;
+}
+
+function isOnlyPoison(b) {
+  for (let r = 0; r < N; r++)
+    for (let c = 0; c < N; c++)
+      if (b[r][c] && !(r === 0 && c === 0)) return false;
+  return b[0][0];
+}
+
+// P-position = current player loses (they'll be forced to take poison)
+function getPos(b) {
+  const k = boardKey(b);
+  if (posCache[k] !== undefined) return posCache[k];
+  if (isOnlyPoison(b)) { posCache[k] = 'P'; return 'P'; }
+  const moves = validMoves(b);
+  for (const [r, c] of moves) {
+    const nb = applyMove(b, r, c);
+    if (getPos(nb) === 'P') { posCache[k] = 'N'; return 'N'; }
+  }
+  posCache[k] = 'P';
+  return 'P';
+}
+
+// CPU: pick winning move (move leading to P-position for opponent) else random
+function cpuMove(b) {
+  const moves = validMoves(b);
+  if (moves.length === 0) return [0, 0];
+  for (const [r, c] of moves) {
+    const nb = applyMove(b, r, c);
+    if (getPos(nb) === 'P') return [r, c];
+  }
+  return moves[Math.floor(Math.random() * moves.length)];
+}
+
+// ─── Render Board ─────────────────────────────────────────────────────────────
+function renderBoard() {
+  const cont = document.getElementById('board-container');
+  cont.innerHTML = '';
+  for (let r = N - 1; r >= 0; r--) {
+    const row = document.createElement('div');
+    row.className = 'board-row';
+    for (let c = 0; c < N; c++) {
+      const cell = document.createElement('div');
+      cell.className = 'cell';
+      if (!board[r][c]) {
+        cell.classList.add('removed');
+      } else if (r === 0 && c === 0) {
+        cell.classList.add('poison');
+        cell.textContent = '☠';
+      } else {
+        cell.classList.add('alive');
+        cell.textContent = '🍫';
+        cell.addEventListener('click', () => onCellClick(r, c));
+      }
+      const lbl = document.createElement('span');
+      lbl.className = 'coord-label';
+      lbl.textContent = `${c},${r}`;
+      cell.appendChild(lbl);
+      row.appendChild(cell);
+    }
+    cont.appendChild(row);
+  }
+  // poison click (only if game not over)
+  const poisonCell = cont.querySelector('.poison');
+  if (poisonCell && !gameOver) {
+    poisonCell.addEventListener('click', () => onCellClick(0, 0));
+  }
+}
+
+// ─── Game Logic ───────────────────────────────────────────────────────────────
+function onCellClick(r, c) {
+  if (gameOver || currentTurn !== 'you') return;
+  makeMove(r, c, 'you');
+}
+
+function makeMove(r, c, who) {
+  // Taking the poison square immediately loses for the player who clicked it.
+  // Do not let the normal move logic continue, because it would erase the board.
+  if (r === 0 && c === 0) {
+    moveHistory.push({ who, r, c });
+    renderMoveHistory();
+    endGame(who);
+    return;
+  }
+
+  board = applyMove(board, r, c);
+  moveHistory.push({ who, r, c });
+
+  // add tree node
+  const pos = getPos(board);
+  const newId = ++nodeIdCounter;
+  treeNodes.push({ id: newId, boardKey: boardKey(board), parentId: currentNodeId, move: [r, c], pos, who });
+  treeEdges.push({ from: currentNodeId, to: newId, active: true });
+  currentNodeId = newId;
+
+  renderBoard();
+  renderMoveHistory();
+  renderTree();
+
+  // check: if only poison left, current player (who just moved) won, other lost
+  if (isOnlyPoison(board)) {
+    const loser = who === 'you' ? 'cpu' : 'you';
+    endGame(loser);
+    return;
+  }
+
+  if (who === 'you') {
+    currentTurn = 'cpu';
+    setStatus('cpu', '🤖 CPU is thinking…');
+    updateTurnIndicator();
+    setTimeout(() => {
+      const [cr, cc] = cpuMove(board);
+      makeMove(cr, cc, 'cpu');
+    }, 600);
+  } else {
+    currentTurn = 'you';
+    const pos2 = getPos(board);
+    setStatus('you', pos2 === 'P'
+      ? '⚠️ You\'re in a <span style="color:var(--red)">losing position</span> — play carefully!'
+      : '✨ You\'re in a <span style="color:var(--green)">winning position</span>!');
+    updateTurnIndicator();
+  }
+}
+
+function endGame(loser) {
+  gameOver = true;
+  const youLost = loser === 'you';
+  const msg = youLost
+    ? '☠ You were forced to eat the poison — <strong style="color:var(--red)">You lose!</strong>'
+    : '🎉 CPU ate the poison — <strong style="color:var(--green)">You win!</strong>';
+  document.getElementById('status-bar').innerHTML = `<span class="dot win"></span> ${msg}`;
+  document.getElementById('turn-indicator').textContent = youLost ? '● Game over' : '★ You won!';
+  document.getElementById('turn-indicator').style.color = youLost ? 'var(--red)' : 'var(--yellow)';
+}
+
+function setStatus(who, msg) {
+  const bar = document.getElementById('status-bar');
+  const dot = who === 'you' ? 'you' : 'cpu';
+  bar.innerHTML = `<span class="dot ${dot}"></span> ${msg}`;
+}
+
+function updateTurnIndicator() {
+  const ind = document.getElementById('turn-indicator');
+  if (currentTurn === 'you') {
+    ind.textContent = '● Your turn';
+    ind.style.color = 'var(--green)';
+  } else {
+    ind.textContent = '● CPU\'s turn';
+    ind.style.color = 'var(--red)';
+  }
+}
+
+function renderMoveHistory() {
+  const list = document.getElementById('move-list');
+  list.innerHTML = '';
+  moveHistory.forEach((m, i) => {
+    const chip = document.createElement('div');
+    chip.className = `move-chip ${m.who === 'you' ? 'you-chip' : 'cpu-chip'}`;
+    chip.textContent = `${i + 1}. ${m.who === 'you' ? 'You' : 'CPU'} (${m.c},${m.r})`;
+    list.appendChild(chip);
+  });
+}
+
+// ─── Game Tree Rendering ──────────────────────────────────────────────────────
+function renderTree() {
+  const show = document.getElementById('tree-toggle').checked;
+  document.getElementById('right-panel').style.display = show ? '' : 'none';
+  if (!show) return;
+
+  const svg = document.getElementById('tree-svg');
+  svg.innerHTML = '';
+
+  if (treeNodes.length === 0) {
+    svg.setAttribute('viewBox', '0 0 400 100');
+    const t = document.createElementNS('http://www.w3.org/2000/svg', 'text');
+    t.setAttribute('x', 200); t.setAttribute('y', 50);
+    t.setAttribute('text-anchor', 'middle');
+    t.setAttribute('fill', '#94a3b8');
+    t.setAttribute('font-size', '13');
+    t.textContent = 'Make a move to start building the tree';
+    svg.appendChild(t);
+    return;
+  }
+
+  // Layout: BFS levels
+  const nodeMap = {};
+  // root = node 0 (initial state)
+  const rootNode = { id: 0, boardKey: boardKey(initBoardCopy()), parentId: null, move: null, pos: getPos(initBoardCopy()), who: null };
+  const allNodes = [rootNode, ...treeNodes];
+  allNodes.forEach(n => nodeMap[n.id] = n);
+
+  // assign depth
+  const depths = { 0: 0 };
+  const byDepth = { 0: [0] };
+  treeNodes.forEach(n => {
+    const d = (depths[n.parentId] ?? 0) + 1;
+    depths[n.id] = d;
+    if (!byDepth[d]) byDepth[d] = [];
+    byDepth[d].push(n.id);
+  });
+
+  const maxDepth = Math.max(...Object.keys(depths).map(Number));
+  const levelH = 80;
+  const nodeR = 18;
+  const W = Math.max(400, Object.values(byDepth).reduce((a, b) => Math.max(a, b.length), 0) * 80 + 40);
+  const H = (maxDepth + 1) * levelH + 60;
+
+  svg.setAttribute('viewBox', `0 0 ${W} ${H}`);
+  svg.style.height = H + 'px';
+
+  const positions = {};
+  Object.entries(byDepth).forEach(([d, ids]) => {
+    const y = parseInt(d) * levelH + 40;
+    const total = ids.length;
+    ids.forEach((id, i) => {
+      const x = W / (total + 1) * (i + 1);
+      positions[id] = { x, y };
+    });
+  });
+
+  // draw edges
+  treeEdges.forEach(e => {
+    if (!positions[e.from] || !positions[e.to]) return;
+    const line = document.createElementNS('http://www.w3.org/2000/svg', 'line');
+    line.setAttribute('x1', positions[e.from].x);
+    line.setAttribute('y1', positions[e.from].y);
+    line.setAttribute('x2', positions[e.to].x);
+    line.setAttribute('y2', positions[e.to].y);
+    line.setAttribute('class', `tree-edge ${e.active ? 'active' : ''}`);
+    svg.appendChild(line);
+  });
+
+  // draw nodes
+  allNodes.forEach(n => {
+    if (!positions[n.id]) return;
+    const { x, y } = positions[n.id];
+    const g = document.createElementNS('http://www.w3.org/2000/svg', 'g');
+    g.setAttribute('class', `tree-node${n.id === currentNodeId ? ' current' : ''}`);
+    g.setAttribute('transform', `translate(${x},${y})`);
+
+    const circle = document.createElementNS('http://www.w3.org/2000/svg', 'circle');
+    circle.setAttribute('r', nodeR);
+    const isN = n.pos === 'N';
+    circle.setAttribute('fill', isN ? '#14532d' : '#450a0a');
+    circle.setAttribute('stroke', isN ? 'var(--green)' : 'var(--red)');
+    g.appendChild(circle);
+
+    // label
+    const lbl = document.createElementNS('http://www.w3.org/2000/svg', 'text');
+    lbl.setAttribute('y', -2);
+    lbl.setAttribute('font-size', '10');
+    lbl.textContent = n.id === 0 ? 'Start' : (n.move ? `(${n.move[1]},${n.move[0]})` : '');
+    g.appendChild(lbl);
+
+    // N/P label
+    const pos_lbl = document.createElementNS('http://www.w3.org/2000/svg', 'text');
+    pos_lbl.setAttribute('y', 10);
+    pos_lbl.setAttribute('font-size', '9');
+    pos_lbl.setAttribute('fill', isN ? 'var(--green)' : 'var(--red)');
+    pos_lbl.textContent = n.pos + '-pos';
+    g.appendChild(pos_lbl);
+
+    // who label above
+    if (n.who) {
+      const who_lbl = document.createElementNS('http://www.w3.org/2000/svg', 'text');
+      who_lbl.setAttribute('y', -nodeR - 5);
+      who_lbl.setAttribute('font-size', '9');
+      who_lbl.setAttribute('fill', n.who === 'you' ? 'var(--green)' : 'var(--red)');
+      who_lbl.textContent = n.who === 'you' ? 'You' : 'CPU';
+      g.appendChild(who_lbl);
+    }
+
+    svg.appendChild(g);
+  });
+
+  // legend
+  const leg = document.createElementNS('http://www.w3.org/2000/svg', 'g');
+  leg.setAttribute('transform', `translate(10,${H - 30})`);
+
+  const makeRect = (x, color, label) => {
+    const c = document.createElementNS('http://www.w3.org/2000/svg', 'circle');
+    c.setAttribute('cx', x); c.setAttribute('cy', 0); c.setAttribute('r', 7);
+    c.setAttribute('fill', color === 'green' ? '#14532d' : '#450a0a');
+    c.setAttribute('stroke', color === 'green' ? 'var(--green)' : 'var(--red)');
+    leg.appendChild(c);
+    const t = document.createElementNS('http://www.w3.org/2000/svg', 'text');
+    t.setAttribute('x', x + 12); t.setAttribute('y', 4);
+    t.setAttribute('font-size', '10');
+    t.setAttribute('fill', '#94a3b8');
+    t.textContent = label;
+    leg.appendChild(t);
+  };
+  makeRect(0, 'green', 'N-pos: next player wins');
+  makeRect(160, 'red', 'P-pos: next player loses');
+  svg.appendChild(leg);
+}
+
+function initBoardCopy() {
+  const b = [];
+  for (let r = 0; r < N; r++) { b[r] = []; for (let c = 0; c < N; c++) b[r][c] = true; }
+  return b;
+}
+
+// ─── Init & Reset ────────────────────────────────────────────────────────────
+function init() {
+  N = parseInt(document.getElementById('size-select').value);
+  initBoard();
+  currentTurn = 'you';
+  gameOver = false;
+  moveHistory = [];
+  treeNodes = [];
+  treeEdges = [];
+  nodeIdCounter = 0;
+  currentNodeId = 0;
+
+  // Prime cache for current N
+  posCache[boardKey(initBoardCopy())] = undefined;
+  getPos(initBoardCopy());
+
+  document.getElementById('status-bar').innerHTML = '<span class="dot you"></span> Click any square to start — you go first!';
+  document.getElementById('turn-indicator').textContent = '● Your turn';
+  document.getElementById('turn-indicator').style.color = 'var(--green)';
+  document.getElementById('move-list').innerHTML = '';
+
+  renderBoard();
+  renderTree();
+}
+
+document.getElementById('reset-btn').addEventListener('click', init);
+document.getElementById('size-select').addEventListener('change', init);
+document.getElementById('tree-toggle').addEventListener('change', renderTree);
+
+init();
+</script>
+</body>
+</html>
