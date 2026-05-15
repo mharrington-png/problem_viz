@@ -1,0 +1,761 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+<meta charset="UTF-8">
+<meta name="viewport" content="width=device-width, initial-scale=1.0">
+<title>Probability Tree — Card Drawing</title>
+<style>
+  * { box-sizing: border-box; margin: 0; padding: 0; }
+  body {
+    font-family: 'Segoe UI', system-ui, sans-serif;
+    background: #f8f7f4;
+    color: #1a1a1a;
+    min-height: 100vh;
+  }
+  @media (prefers-color-scheme: dark) {
+    body { background: #1a1a1a; color: #e8e6e0; }
+    .panel { background: #242424; border-color: #333; }
+    .info-box { background: #1e2a2a; border-color: #2a4040; }
+    .eq-box { background: #1e2026; border-color: #2a3050; }
+    .stat-card { background: #2a2a2a; }
+    .slider-label { color: #aaa; }
+    input[type=range] { accent-color: #6c8ebf; }
+    .tab { background: #2a2a2a; color: #888; border-color: #333; }
+    .tab.active { background: #3a3a3a; color: #e0ddd5; }
+    select { background: #2a2a2a; color: #e0ddd5; border-color: #444; }
+    .branch-label-bg { fill: #242424; }
+    .legend-bg { fill: #242424; }
+    .node-label-bg { fill: #242424; }
+  }
+
+  h1 { font-size: 20px; font-weight: 500; padding: 20px 24px 8px; }
+  .subtitle { font-size: 13px; color: #666; padding: 0 24px 16px; }
+
+  .top-bar {
+    display: flex; align-items: center; gap: 12px;
+    padding: 0 24px 16px; flex-wrap: wrap;
+  }
+  .top-bar label { font-size: 13px; color: #555; }
+  select {
+    font-size: 13px; padding: 5px 10px;
+    border: 0.5px solid #ccc; border-radius: 8px;
+    background: #fff; cursor: pointer;
+  }
+  .tab-row { display: flex; gap: 6px; padding: 0 24px 16px; }
+  .tab {
+    font-size: 12px; padding: 5px 14px;
+    border: 0.5px solid #ccc; border-radius: 20px;
+    cursor: pointer; background: #fff; color: #555;
+    transition: all .15s;
+  }
+  .tab.active { background: #3d3d3a; color: #fff; border-color: #3d3d3a; }
+
+  .main-layout {
+    display: grid;
+    grid-template-columns: 1fr 300px;
+    gap: 0;
+    padding: 0 24px 24px;
+  }
+
+  .tree-area { overflow-x: auto; }
+
+  svg#tree { display: block; }
+
+  .sidebar { padding-left: 20px; display: flex; flex-direction: column; gap: 14px; }
+
+  .panel {
+    background: #fff; border: 0.5px solid #ddd;
+    border-radius: 12px; padding: 14px 16px;
+  }
+  .panel h3 { font-size: 13px; font-weight: 500; margin-bottom: 10px; color: #444; text-transform: uppercase; letter-spacing: .04em; }
+
+  .slider-row { display: flex; flex-direction: column; gap: 4px; margin-bottom: 10px; }
+  .slider-label { display: flex; justify-content: space-between; font-size: 12px; color: #666; }
+  input[type=range] { width: 100%; cursor: pointer; }
+
+  .eq-box {
+    background: #f0f4ff; border: 0.5px solid #c0cff0;
+    border-radius: 8px; padding: 10px 12px; font-size: 12px;
+    line-height: 1.7; font-family: 'Georgia', serif;
+  }
+  .eq-box .eq-title { font-size: 11px; font-weight: 600; color: #5566aa; margin-bottom: 6px; text-transform: uppercase; letter-spacing: .05em; font-family: system-ui; }
+
+  .stat-grid { display: grid; grid-template-columns: 1fr 1fr; gap: 8px; }
+  .stat-card {
+    background: #f5f4f0; border-radius: 8px;
+    padding: 8px 10px; text-align: center;
+  }
+  .stat-card .val { font-size: 17px; font-weight: 500; color: #2a5abf; }
+  .stat-card .lbl { font-size: 10px; color: #888; margin-top: 2px; }
+
+  .info-box {
+    background: #f0faf5; border: 0.5px solid #a0d8b8;
+    border-radius: 8px; padding: 10px 12px;
+    font-size: 12px; line-height: 1.65; color: #2a6050;
+  }
+  .info-box strong { font-weight: 600; }
+
+  .legend { display: flex; gap: 10px; flex-wrap: wrap; padding: 0 24px 8px; }
+  .legend-item { display: flex; align-items: center; gap: 5px; font-size: 11px; color: #666; }
+  .legend-dot { width: 10px; height: 10px; border-radius: 50%; }
+
+  .depth-row { display: flex; align-items: center; gap: 8px; font-size: 12px; color: #555; margin-top: 4px; }
+  .depth-btn {
+    width: 24px; height: 24px; border-radius: 6px;
+    border: 0.5px solid #ccc; background: #fff;
+    font-size: 14px; cursor: pointer; line-height: 22px; text-align: center;
+  }
+  .depth-btn:hover { background: #f0f0f0; }
+
+  .highlight-path { stroke-width: 2.5 !important; }
+  .dimmed { opacity: 0.22; }
+  .path-node circle { cursor: pointer; }
+</style>
+</head>
+<body>
+<h2 class="sr-only" style="position:absolute;width:1px;height:1px;overflow:hidden;clip:rect(0,0,0,0)">Interactive probability tree for drawing cards from a deck, showing conditional probabilities at each branch.</h2>
+
+<h1>Probability tree — card drawing</h1>
+<p class="subtitle">See how each draw changes the probability of the next. Click any branch to condition on it.</p>
+
+<div class="top-bar">
+  <label>Scenario:</label>
+  <select id="scenario" onchange="applyScenario()">
+    <option value="suits">Draw by suit (♠ ♥ ♦ ♣)</option>
+    <option value="redblack">Red vs Black</option>
+    <option value="facecard">Face card vs Number</option>
+    <option value="custom">Custom probabilities</option>
+  </select>
+  <label style="margin-left:8px">Depth:</label>
+  <div class="depth-row">
+    <button class="depth-btn" onclick="changeDepth(-1)">−</button>
+    <span id="depth-label">2</span>
+    <button class="depth-btn" onclick="changeDepth(1)">+</button>
+  </div>
+  <button class="depth-btn" style="width:auto;padding:0 10px;margin-left:8px;font-size:12px" onclick="resetCondition()">Clear selection</button>
+</div>
+
+<div class="tab-row">
+  <button class="tab active" id="tab-tree" onclick="switchTab('tree')">Tree diagram</button>
+  <button class="tab" id="tab-sim" onclick="switchTab('sim')">Simulation</button>
+  <button class="tab" id="tab-ev" onclick="switchTab('ev')">Expected value</button>
+</div>
+
+<div id="view-tree">
+<div class="legend">
+  <div class="legend-item"><div class="legend-dot" style="background:#4a90d9"></div>Outcome node</div>
+  <div class="legend-item"><div class="legend-dot" style="background:#e07b3a"></div>Selected path</div>
+  <div class="legend-item"><div class="legend-dot" style="background:#aaa"></div>Zero-probability (grayed)</div>
+</div>
+<div class="main-layout">
+  <div class="tree-area">
+    <svg id="tree" width="680" height="500"></svg>
+  </div>
+  <div class="sidebar">
+    <div class="panel" id="eq-panel">
+      <h3>Equations</h3>
+      <div class="eq-box" id="eq-display">
+        <div class="eq-title">Addition rule</div>
+        P(A ∪ B) = P(A) + P(B) − P(A ∩ B)
+        <br><br>
+        <div class="eq-title">Multiplication rule</div>
+        P(A ∩ B) = P(A) × P(B | A)
+        <br><br>
+        <div class="eq-title">Conditional probability</div>
+        P(B | A) = P(A ∩ B) / P(A)
+      </div>
+    </div>
+    <div class="panel">
+      <h3>Key probabilities</h3>
+      <div class="stat-grid" id="stat-grid"></div>
+    </div>
+    <div class="panel" id="condition-panel" style="display:none">
+      <h3>Conditioned on</h3>
+      <div class="info-box" id="condition-info"></div>
+    </div>
+    <div class="panel" id="custom-panel" style="display:none">
+      <h3>Custom sliders</h3>
+      <div id="custom-sliders"></div>
+    </div>
+  </div>
+</div>
+</div>
+
+<div id="view-sim" style="display:none; padding: 0 24px 24px;">
+  <div style="display:flex;gap:20px;flex-wrap:wrap;align-items:flex-start">
+    <div style="flex:1;min-width:300px">
+      <div class="panel">
+        <h3>Run a simulation</h3>
+        <div style="display:flex;gap:8px;margin-bottom:14px;align-items:center;flex-wrap:wrap">
+          <button class="depth-btn" style="width:auto;padding:0 12px;font-size:12px" onclick="runSim(100)">Run 100</button>
+          <button class="depth-btn" style="width:auto;padding:0 12px;font-size:12px" onclick="runSim(1000)">Run 1,000</button>
+          <button class="depth-btn" style="width:auto;padding:0 12px;font-size:12px" onclick="runSim(10000)">Run 10,000</button>
+          <button class="depth-btn" style="width:auto;padding:0 12px;font-size:12px" onclick="clearSim()">Clear</button>
+        </div>
+        <canvas id="sim-canvas" width="580" height="280" style="width:100%;border-radius:8px"></canvas>
+      </div>
+    </div>
+    <div style="width:240px">
+      <div class="panel">
+        <h3>Law of large numbers</h3>
+        <div class="info-box" style="font-size:11px;color:#2a5060">
+          As trials increase, simulated frequency <strong>converges to theoretical probability</strong>.<br><br>
+          The gap between the bars and the dashed lines shrinks with more trials.
+        </div>
+        <div style="margin-top:12px" id="sim-stats"></div>
+      </div>
+    </div>
+  </div>
+</div>
+
+<div id="view-ev" style="display:none; padding: 0 24px 24px;">
+  <div style="display:grid;grid-template-columns:1fr 280px;gap:20px">
+    <div class="panel">
+      <h3>Expected value calculator</h3>
+      <p style="font-size:12px;color:#666;margin-bottom:14px">Assign a payout to each outcome and see E[X] = Σ x·P(x)</p>
+      <div id="ev-rows"></div>
+      <div style="margin-top:14px;padding-top:12px;border-top:0.5px solid #ddd;font-size:14px;font-weight:500">
+        E[X] = <span id="ev-total" style="color:#2a5abf">—</span>
+      </div>
+    </div>
+    <div class="panel">
+      <div class="eq-box">
+        <div class="eq-title">Expected value</div>
+        E[X] = Σ xᵢ · P(xᵢ)<br><br>
+        Each outcome's value weighted by its probability, summed over all outcomes.
+      </div>
+      <div class="info-box" style="margin-top:12px;font-size:11px;color:#2a5060">
+        <strong>Example:</strong> If drawing a ♠ pays $4 and others pay $0, E[X] = 4 × P(♠) = 4 × 0.25 = <strong>$1.00</strong>
+      </div>
+    </div>
+  </div>
+</div>
+
+<script>
+const SCENARIOS = {
+  suits: {
+    name: 'Suits',
+    branches: [
+      { label: '♠ Spade', p: 13/52, color: '#3d3d3a' },
+      { label: '♥ Heart', p: 13/52, color: '#cc3333' },
+      { label: '♦ Diamond', p: 13/52, color: '#cc3333' },
+      { label: '♣ Club', p: 13/52, color: '#3d3d3a' }
+    ],
+    withoutReplacement: true,
+    deckSize: 52
+  },
+  redblack: {
+    name: 'Red/Black',
+    branches: [
+      { label: '🔴 Red', p: 26/52, color: '#cc3333' },
+      { label: '⚫ Black', p: 26/52, color: '#222' }
+    ],
+    withoutReplacement: true,
+    deckSize: 52
+  },
+  facecard: {
+    name: 'Face/Number',
+    branches: [
+      { label: 'Face (J/Q/K/A)', p: 16/52, color: '#7755bb' },
+      { label: 'Number (2–10)', p: 36/52, color: '#226688' }
+    ],
+    withoutReplacement: true,
+    deckSize: 52
+  },
+  custom: {
+    name: 'Custom',
+    branches: [
+      { label: 'Event A', p: 0.4, color: '#4a90d9' },
+      { label: 'Event B', p: 0.35, color: '#e07b3a' },
+      { label: 'Event C', p: 0.25, color: '#5ab87a' }
+    ],
+    withoutReplacement: false,
+    deckSize: null
+  }
+};
+
+let scenario = 'suits';
+let depth = 2;
+let conditionPath = [];
+let simResults = [];
+
+function getScenario() { return SCENARIOS[scenario]; }
+
+function getBranchesAt(path) {
+  const sc = getScenario();
+  if (!sc.withoutReplacement || !sc.deckSize) return sc.branches;
+  let remaining = sc.deckSize;
+  let removedPerSuit = {};
+  path.forEach(idx => {
+    const b = sc.branches[idx];
+    removedPerSuit[idx] = (removedPerSuit[idx] || 0) + 1;
+    remaining -= 1;
+  });
+  if (remaining <= 0) return sc.branches.map(b => ({ ...b, p: 0 }));
+  const suitCounts = sc.branches.map((b, i) => {
+    const removed = removedPerSuit[i] || 0;
+    const originalCount = Math.round(b.p * sc.deckSize);
+    return Math.max(0, originalCount - removed);
+  });
+  return sc.branches.map((b, i) => ({
+    ...b,
+    p: remaining > 0 ? suitCounts[i] / remaining : 0
+  }));
+}
+
+function fmt(p) {
+  if (p === 0) return '0';
+  if (Math.abs(p - Math.round(p * 100) / 100) < 0.0001) return (p * 100).toFixed(0) + '%';
+  return (p * 100).toFixed(1) + '%';
+}
+function fmtFrac(p, deckSize) {
+  if (p === 0) return '0';
+  const num = Math.round(p * deckSize);
+  return num + '/' + deckSize;
+}
+
+function drawTree() {
+  const sc = getScenario();
+  const svg = document.getElementById('tree');
+  const W = 680, rootX = 60;
+  const branches = sc.branches;
+  const nLeaves = Math.pow(branches.length, depth);
+  const rowH = 110;
+  const H = rowH * depth + 120;
+  svg.setAttribute('viewBox', `0 0 ${W} ${H}`);
+  svg.setAttribute('height', H);
+  svg.innerHTML = '';
+
+  function makeEl(tag, attrs) {
+    const el = document.createElementNS('http://www.w3.org/2000/svg', tag);
+    Object.entries(attrs).forEach(([k, v]) => el.setAttribute(k, v));
+    return el;
+  }
+  function txt(x, y, text, attrs = {}) {
+    const el = makeEl('text', { x, y, ...attrs });
+    el.textContent = text;
+    return el;
+  }
+
+  // BG rect for labels
+  function bgRect(x, y, w, h, dark) {
+    const r = makeEl('rect', { x: x - w/2, y: y - h/2, width: w, height: h, rx: 4,
+      fill: dark ? '#2a2a2a' : '#f8f7f4', 'fill-opacity': 0.88 });
+    return r;
+  }
+
+  // Build tree nodes: { x, y, path, p (joint), branches }
+  const nodes = [{ x: rootX, y: 48, path: [], p: 1 }];
+  const edges = [];
+
+  function expand(node) {
+    const childBranches = getBranchesAt(node.path);
+    const leafNodes = getAllLeaves(node);
+    const xSpan = leafNodes.length > 0 ? (leafNodes[leafNodes.length-1].x - leafNodes[0].x) : 0;
+    const childY = node.y + rowH;
+    const childCount = childBranches.length;
+    const xSpanForChildren = Math.max(200, (W - rootX - 60) * (node.path.length === 0 ? 1 : 1));
+    const parentLeaves = getAllLeaves(node);
+    // distribute children evenly under parent
+    return childBranches.map((b, i) => {
+      return { label: b.label, color: b.color, condP: b.p, p: node.p * b.p, path: [...node.path, i], parentNode: node, branchIdx: i };
+    });
+  }
+
+  // Recursive layout
+  function layout(node, xLeft, xRight, curDepth) {
+    node.x = (xLeft + xRight) / 2;
+    if (curDepth < depth) {
+      const childBranches = getBranchesAt(node.path);
+      const slotW = (xRight - xLeft) / childBranches.length;
+      node.children = childBranches.map((b, i) => {
+        const child = {
+          label: b.label, color: b.color, condP: b.p,
+          p: node.p * b.p, path: [...node.path, i], parentNode: node, branchIdx: i,
+          y: node.y + rowH
+        };
+        layout(child, xLeft + i * slotW, xLeft + (i + 1) * slotW, curDepth + 1);
+        return child;
+      });
+    }
+  }
+
+  const root = { x: 0, y: 48, path: [], p: 1 };
+  layout(root, rootX + 20, W - 30, 0);
+  root.x = rootX;
+
+  // Collect all nodes for rendering
+  const allNodes = [];
+  function collect(n) { allNodes.push(n); if (n.children) n.children.forEach(collect); }
+  collect(root);
+
+  function isOnCondPath(path) {
+    if (conditionPath.length === 0) return true;
+    for (let i = 0; i < conditionPath.length && i < path.length; i++) {
+      if (path[i] !== conditionPath[i]) return false;
+    }
+    return true;
+  }
+  function isConditioned(path) {
+    if (conditionPath.length === 0) return false;
+    if (path.length > conditionPath.length) return false;
+    for (let i = 0; i < path.length; i++) {
+      if (path[i] !== conditionPath[i]) return false;
+    }
+    return true;
+  }
+
+  const defs = makeEl('defs', {});
+  svg.appendChild(defs);
+
+  // Draw edges first
+  function drawEdges(n) {
+    if (!n.children) return;
+    n.children.forEach(c => {
+      const onPath = isOnCondPath(c.path);
+      const isZero = c.condP === 0;
+      const line = makeEl('line', {
+        x1: n.x, y1: n.y + 8, x2: c.x, y2: c.y - 8,
+        stroke: isZero ? '#bbb' : (isConditioned(c.path) ? '#e07b3a' : (onPath ? c.color : '#ccc')),
+        'stroke-width': isConditioned(c.path) ? 2.5 : (onPath ? 1.5 : 0.8),
+        'stroke-opacity': isZero ? 0.35 : (onPath ? 1 : 0.4),
+        'stroke-dasharray': isZero ? '4 3' : 'none'
+      });
+      svg.appendChild(line);
+
+      // Branch probability label
+      const mx = (n.x + c.x) / 2 + 8;
+      const my = (n.y + c.y) / 2;
+      const pLabel = sc.withoutReplacement && sc.deckSize
+        ? fmtFrac(c.condP, Math.round(sc.deckSize - c.path.length + 1))
+        : fmt(c.condP);
+      const bg = bgRect(mx, my, pLabel.length * 6.5 + 10, 16, document.body.style.background === '#1a1a1a');
+      svg.appendChild(bg);
+      const tEl = txt(mx, my + 4, pLabel, {
+        'text-anchor': 'middle', 'font-size': '11',
+        fill: isZero ? '#aaa' : (isConditioned(c.path) ? '#c05010' : '#555'),
+        'font-family': 'system-ui, sans-serif'
+      });
+      svg.appendChild(tEl);
+
+      drawEdges(c);
+    });
+  }
+  drawEdges(root);
+
+  // Draw nodes
+  function drawNodes(n) {
+    const isRoot = n.path.length === 0;
+    const isZero = !isRoot && n.condP === 0;
+    const onPath = isRoot || isOnCondPath(n.path);
+    const isCond = isConditioned(n.path);
+    const r = isRoot ? 10 : 8;
+
+    const g = makeEl('g', { style: 'cursor:pointer' });
+    if (!isRoot) {
+      g.addEventListener('click', () => {
+        if (isCond) conditionPath = n.path.slice(0, -1);
+        else conditionPath = n.path.slice();
+        drawTree(); updateSidebar();
+      });
+    }
+
+    const circle = makeEl('circle', {
+      cx: n.x, cy: n.y, r,
+      fill: isRoot ? '#555' : (isCond ? '#e07b3a' : (isZero ? '#ddd' : n.color)),
+      stroke: '#fff', 'stroke-width': 1.5,
+      opacity: isZero ? 0.4 : 1
+    });
+    g.appendChild(circle);
+
+    if (!isRoot) {
+      // Outcome label below leaf nodes
+      if (!n.children) {
+        const jointLabel = fmt(n.p);
+        const bg = bgRect(n.x, n.y + 22, Math.max(jointLabel.length * 7 + 12, n.label.length * 6 + 14), 30, false);
+        g.appendChild(bg);
+        const tl = txt(n.x, n.y + 17, n.label, {
+          'text-anchor': 'middle', 'font-size': '10.5', fill: isZero ? '#bbb' : '#333',
+          'font-family': 'system-ui, sans-serif', 'font-weight': isZero ? '400' : '500'
+        });
+        g.appendChild(tl);
+        const tp = txt(n.x, n.y + 30, 'P = ' + jointLabel, {
+          'text-anchor': 'middle', 'font-size': '10', fill: isZero ? '#ccc' : '#888',
+          'font-family': 'system-ui, sans-serif'
+        });
+        g.appendChild(tp);
+      } else {
+        // intermediate label above
+        const bg = bgRect(n.x, n.y - 18, n.label.length * 6.2 + 12, 15, false);
+        g.appendChild(bg);
+        const tl = txt(n.x, n.y - 13, n.label, {
+          'text-anchor': 'middle', 'font-size': '10.5', fill: isZero ? '#bbb' : '#333',
+          'font-family': 'system-ui, sans-serif', 'font-weight': '500'
+        });
+        g.appendChild(tl);
+      }
+    } else {
+      const tl = txt(n.x, n.y - 16, 'Start', {
+        'text-anchor': 'middle', 'font-size': '11', fill: '#777',
+        'font-family': 'system-ui, sans-serif'
+      });
+      g.appendChild(tl);
+    }
+
+    svg.appendChild(g);
+    if (n.children) n.children.forEach(drawNodes);
+  }
+  drawNodes(root);
+
+  // Conditioned sample space boundary
+  if (conditionPath.length > 0) {
+    function findNode(path, n) {
+      if (path.length === 0) return n;
+      if (!n.children) return null;
+      return findNode(path.slice(1), n.children[path[0]]);
+    }
+    const condNode = findNode(conditionPath, root);
+    if (condNode) {
+      const box = makeEl('rect', {
+        x: condNode.x - 30, y: condNode.y - 20,
+        width: 60, height: 40, rx: 8,
+        fill: 'none', stroke: '#e07b3a', 'stroke-width': 1.5, 'stroke-dasharray': '4 2'
+      });
+      svg.insertBefore(box, svg.firstChild);
+    }
+  }
+}
+
+function updateSidebar() {
+  const sc = getScenario();
+  // Stats
+  const grid = document.getElementById('stat-grid');
+  const branches = sc.branches;
+  grid.innerHTML = '';
+  branches.forEach(b => {
+    const card = document.createElement('div');
+    card.className = 'stat-card';
+    const pCond = conditionPath.length > 0 ? getBranchesAt(conditionPath)[sc.branches.indexOf(b)]?.p : b.p;
+    card.innerHTML = `<div class="val" style="color:${b.color};font-size:15px">${fmt(b.p)}</div><div class="lbl">${b.label}</div>`;
+    grid.appendChild(card);
+  });
+
+  // Equations
+  const eqDisp = document.getElementById('eq-display');
+  if (conditionPath.length > 0) {
+    const condBranch = sc.branches[conditionPath[conditionPath.length - 1]];
+    const pA = condBranch.p;
+    const childBranches = getBranchesAt(conditionPath);
+    const b2 = childBranches[0];
+    const pBgA = b2.p;
+    const pAandB = (pA * pBgA);
+    eqDisp.innerHTML = `<div class="eq-title">Conditioning on: ${condBranch.label}</div>
+      P(A) = ${fmt(pA)}<br><br>
+      <div class="eq-title">Multiplication rule</div>
+      P(A ∩ B) = P(A) × P(B|A)<br>
+      = ${fmt(pA)} × ${fmt(pBgA)} = ${fmt(pAandB)}<br><br>
+      <div class="eq-title">Conditional probability</div>
+      P(B|A) = P(A∩B) / P(A)<br>
+      = ${fmt(pAandB)} / ${fmt(pA)} = ${fmt(pBgA)}`;
+    document.getElementById('condition-panel').style.display = 'block';
+    document.getElementById('condition-info').innerHTML =
+      `Conditioned on <strong>${condBranch.label}</strong> being drawn first.<br><br>
+       Sample space shrinks: next draw comes from the remaining ${sc.deckSize ? sc.deckSize - conditionPath.length : '?'} cards.
+       <br><br>P(${condBranch.label} again) = ${fmt(childBranches[conditionPath[conditionPath.length-1]].p)}`;
+  } else {
+    eqDisp.innerHTML = `<div class="eq-title">Addition rule</div>
+P(A ∪ B) = P(A) + P(B) − P(A ∩ B)<br><br>
+<div class="eq-title">Multiplication rule</div>
+P(A ∩ B) = P(A) × P(B | A)<br><br>
+<div class="eq-title">Conditional probability</div>
+P(B | A) = P(A ∩ B) / P(A)<br><br>
+<span style="font-size:11px;color:#888">Click a branch to condition on it and see the equations with real numbers.</span>`;
+    document.getElementById('condition-panel').style.display = 'none';
+  }
+
+  // Custom sliders
+  if (scenario === 'custom') {
+    document.getElementById('custom-panel').style.display = 'block';
+    const container = document.getElementById('custom-sliders');
+    if (!container._built) {
+      container._built = true;
+      container.innerHTML = '';
+      sc.branches.forEach((b, i) => {
+        const row = document.createElement('div');
+        row.className = 'slider-row';
+        row.innerHTML = `<div class="slider-label"><span>${b.label}</span><span id="cval${i}">${fmt(b.p)}</span></div>
+          <input type="range" min="0" max="100" step="1" value="${Math.round(b.p*100)}" oninput="updateCustom(${i}, this.value)">`;
+        container.appendChild(row);
+      });
+    }
+  } else {
+    document.getElementById('custom-panel').style.display = 'none';
+  }
+
+  updateEV();
+}
+
+function updateCustom(idx, val) {
+  const sc = SCENARIOS.custom;
+  sc.branches[idx].p = val / 100;
+  document.getElementById('cval' + idx).textContent = val + '%';
+  drawTree(); updateSidebar();
+}
+
+function updateEV() {
+  const sc = getScenario();
+  const evRows = document.getElementById('ev-rows');
+  if (!evRows) return;
+  const leaves = getLeafPaths(sc);
+  evRows.innerHTML = '';
+  let total = 0;
+  leaves.forEach((leaf, i) => {
+    const inputId = 'ev-input-' + i;
+    const row = document.createElement('div');
+    row.style = 'display:flex;align-items:center;gap:8px;margin-bottom:8px;font-size:12px';
+    row.innerHTML = `<div style="flex:1;color:#555">${leaf.labels.join(' → ')}</div>
+      <div style="color:#888;min-width:40px">${fmt(leaf.p)}</div>
+      <input type="number" id="${inputId}" value="0" step="0.5" style="width:60px;font-size:12px;padding:3px 6px;border:0.5px solid #ccc;border-radius:6px" oninput="recalcEV()">
+      <div style="min-width:16px;color:#777">$</div>`;
+    evRows.appendChild(row);
+  });
+  recalcEV();
+}
+
+function getLeafPaths(sc) {
+  const results = [];
+  function recurse(path, labels, p) {
+    if (path.length === depth) { results.push({ path, labels, p }); return; }
+    const branches = getBranchesAt(path);
+    branches.forEach((b, i) => recurse([...path, i], [...labels, b.label], p * b.p));
+  }
+  recurse([], [], 1);
+  return results;
+}
+
+function recalcEV() {
+  const sc = getScenario();
+  const leaves = getLeafPaths(sc);
+  let ev = 0;
+  leaves.forEach((leaf, i) => {
+    const inp = document.getElementById('ev-input-' + i);
+    if (inp) ev += parseFloat(inp.value || 0) * leaf.p;
+  });
+  const el = document.getElementById('ev-total');
+  if (el) el.textContent = '$' + ev.toFixed(2);
+}
+
+function runSim(n) {
+  const sc = getScenario();
+  for (let t = 0; t < n; t++) {
+    const outcome = [];
+    for (let d = 0; d < depth; d++) {
+      const branches = getBranchesAt(outcome);
+      const r = Math.random();
+      let cum = 0;
+      for (let i = 0; i < branches.length; i++) {
+        cum += branches[i].p;
+        if (r <= cum) { outcome.push(i); break; }
+      }
+      if (outcome.length < d + 1) outcome.push(0);
+    }
+    simResults.push(outcome);
+  }
+  drawSim();
+}
+
+function clearSim() { simResults = []; drawSim(); }
+
+function drawSim() {
+  const sc = getScenario();
+  const canvas = document.getElementById('sim-canvas');
+  if (!canvas) return;
+  const ctx = canvas.getContext('2d');
+  const W = canvas.width, H = canvas.height;
+  ctx.clearRect(0, 0, W, H);
+
+  const leaves = getLeafPaths(sc);
+  if (leaves.length === 0) return;
+
+  const counts = {};
+  leaves.forEach(l => counts[l.path.join(',')] = 0);
+  simResults.forEach(r => { const k = r.join(','); if (counts[k] !== undefined) counts[k]++; });
+
+  const total = simResults.length;
+  const barW = Math.min(60, (W - 60) / leaves.length - 8);
+  const maxP = Math.max(...leaves.map(l => l.p), ...leaves.map(l => (counts[l.path.join(',')] || 0) / Math.max(total, 1))) * 1.15;
+
+  // Axes
+  ctx.strokeStyle = '#ccc'; ctx.lineWidth = 0.5;
+  ctx.beginPath(); ctx.moveTo(50, 20); ctx.lineTo(50, H - 40); ctx.lineTo(W - 10, H - 40); ctx.stroke();
+
+  leaves.forEach((leaf, i) => {
+    const x = 60 + i * ((W - 70) / leaves.length) + (W - 70) / leaves.length / 2 - barW;
+    const theoryH = (leaf.p / maxP) * (H - 65);
+    const simH = total > 0 ? ((counts[leaf.path.join(',')] / total) / maxP) * (H - 65) : 0;
+
+    // Theory bar (outline)
+    ctx.strokeStyle = leaf.p === 0 ? '#ddd' : sc.branches[leaf.path[leaf.path.length - 1]].color;
+    ctx.lineWidth = 1.5;
+    ctx.setLineDash([4, 3]);
+    ctx.strokeRect(x, H - 40 - theoryH, barW - 2, theoryH);
+    ctx.setLineDash([]);
+
+    // Sim bar (filled)
+    ctx.fillStyle = leaf.p === 0 ? '#eee' : sc.branches[leaf.path[leaf.path.length - 1]].color + '88';
+    ctx.fillRect(x + barW, H - 40 - simH, barW - 2, simH);
+
+    // Label
+    ctx.fillStyle = '#666'; ctx.font = '9px system-ui'; ctx.textAlign = 'center';
+    const lbl = leaf.labels[leaf.labels.length - 1];
+    ctx.fillText(lbl.slice(0, 8), x + barW - 1, H - 28);
+    ctx.fillText(fmt(leaf.p), x, H - 15);
+    if (total > 0) ctx.fillText(fmt(counts[leaf.path.join(',')] / total), x + barW, H - 15);
+  });
+
+  // Legend
+  ctx.font = '10px system-ui'; ctx.textAlign = 'left';
+  ctx.setLineDash([4, 3]); ctx.strokeStyle = '#555'; ctx.lineWidth = 1.5;
+  ctx.strokeRect(W - 130, 10, 20, 12); ctx.setLineDash([]);
+  ctx.fillStyle = '#55558880'; ctx.fillRect(W - 100, 10, 20, 12);
+  ctx.fillStyle = '#555';
+  ctx.fillText('Theoretical', W - 106, 20);
+  ctx.fillText('Simulated', W - 76, 33);
+
+  const statsEl = document.getElementById('sim-stats');
+  if (statsEl) {
+    statsEl.innerHTML = `<div class="stat-card" style="margin-bottom:8px"><div class="val">${simResults.length.toLocaleString()}</div><div class="lbl">Total trials</div></div>`;
+  }
+}
+
+function applyScenario() {
+  scenario = document.getElementById('scenario').value;
+  conditionPath = [];
+  simResults = [];
+  if (document.getElementById('custom-sliders')._built !== undefined)
+    document.getElementById('custom-sliders')._built = false;
+  drawTree(); updateSidebar(); drawSim();
+}
+
+function changeDepth(d) {
+  depth = Math.max(1, Math.min(3, depth + d));
+  document.getElementById('depth-label').textContent = depth;
+  conditionPath = conditionPath.slice(0, depth - 1);
+  drawTree(); updateSidebar();
+}
+
+function resetCondition() { conditionPath = []; drawTree(); updateSidebar(); }
+
+function switchTab(t) {
+  ['tree', 'sim', 'ev'].forEach(tab => {
+    document.getElementById('view-' + tab).style.display = tab === t ? 'block' : 'none';
+    document.getElementById('tab-' + tab).classList.toggle('active', tab === t);
+  });
+  if (t === 'sim') drawSim();
+  if (t === 'ev') updateEV();
+}
+
+window.onload = () => { drawTree(); updateSidebar(); };
+</script>
+</body>
+</html>

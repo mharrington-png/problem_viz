@@ -1,0 +1,684 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+<meta charset="UTF-8" />
+<meta name="viewport" content="width=device-width, initial-scale=1.0" />
+<title>Chomp Game Visualizer</title>
+<style>
+  :root {
+    --bg: #faf7f2;
+    --panel: #ffffff;
+    --text: #222;
+    --accent: #7b4f27;
+    --poison: #d62828;
+    --good: #2a9d8f;
+    --bad: #9b2226;
+    --border: #d6c4a8;
+    --shadow: rgba(0,0,0,0.08);
+  }
+
+  body {
+    margin: 0;
+    font-family: Inter, system-ui, sans-serif;
+    background: var(--bg);
+    color: var(--text);
+  }
+
+  h1, h2, h3 {
+    margin-top: 0;
+  }
+
+  .container {
+    max-width: 1400px;
+    margin: auto;
+    padding: 24px;
+  }
+
+  .header {
+    margin-bottom: 24px;
+  }
+
+  .header p {
+    max-width: 900px;
+    line-height: 1.6;
+    color: #555;
+  }
+
+  .layout {
+    display: grid;
+    grid-template-columns: 340px 1fr;
+    gap: 24px;
+  }
+
+  .panel {
+    background: var(--panel);
+    border-radius: 18px;
+    padding: 20px;
+    box-shadow: 0 6px 18px var(--shadow);
+  }
+
+  .controls {
+    display: flex;
+    flex-direction: column;
+    gap: 16px;
+  }
+
+  label {
+    font-weight: 600;
+    margin-bottom: 6px;
+    display: block;
+  }
+
+  select, button, input[type="range"] {
+    width: 100%;
+  }
+
+  button {
+    border: none;
+    padding: 12px;
+    border-radius: 12px;
+    background: repeating-linear-gradient(
+      45deg,
+      #1f2937,
+      #1f2937 6px,
+      #111827 6px,
+      #111827 12px
+    );
+    color: white;
+    cursor: pointer;
+    font-weight: 600;
+    transition: transform 0.15s ease;
+  }
+
+  button:hover {
+    transform: translateY(-1px);
+  }
+
+  .toggle {
+    display: flex;
+    align-items: center;
+    gap: 10px;
+  }
+
+  .board-area {
+    display: flex;
+    flex-direction: column;
+    gap: 18px;
+  }
+
+  .status {
+    display: flex;
+    justify-content: space-between;
+    align-items: center;
+    flex-wrap: wrap;
+    gap: 10px;
+  }
+
+  .badge {
+    padding: 10px 14px;
+    border-radius: 999px;
+    font-weight: 700;
+  }
+
+  .winning {
+    background: rgba(42,157,143,0.15);
+    color: var(--good);
+  }
+
+  .losing {
+    background: rgba(155,34,38,0.12);
+    color: var(--bad);
+  }
+
+  .board {
+    display: grid;
+    gap: 4px;
+    justify-content: start;
+    align-content: start;
+    background: #f2e7d5;
+    padding: 16px;
+    border-radius: 20px;
+    overflow: auto;
+    min-height: 320px;
+  }
+
+  .square {
+    width: 52px;
+    height: 52px;
+    border-radius: 10px;
+    background: linear-gradient(145deg, #B9D9EB, #7AAED6);
+    border: 2px solid rgba(255,255,255,0.25);
+    position: relative;
+    cursor: pointer;
+    transition: transform 0.12s ease, opacity 0.2s ease;
+  }
+
+  .square:hover {
+    transform: scale(1.03);
+  }
+
+  .square.removed {
+    opacity: 0;
+    pointer-events: none;
+  }
+
+  .square.poison {
+    background: linear-gradient(145deg, #1e3a8a, #0b1b3a);
+  }
+
+  .square.best::after {
+    content: '★';
+    position: absolute;
+    top: 32%;
+    left: 50%;
+    transform: translate(-50%, -50%);
+    color: white;
+    font-size: 18px;
+  }
+
+  .square.winmove::before {
+    content: 'W';
+    position: absolute;
+    bottom: 5px;
+    left: 6px;
+    font-size: 12px;
+    font-weight: 800;
+    color: #90f5e8;
+  }
+
+  .square.losemove::before {
+    content: 'L';
+    position: absolute;
+    bottom: 5px;
+    left: 6px;
+    font-size: 12px;
+    font-weight: 800;
+    color: #ffd6d6;
+  }
+
+  .info-grid {
+    display: grid;
+    grid-template-columns: repeat(auto-fit, minmax(240px, 1fr));
+    gap: 16px;
+  }
+
+  .card {
+    background: #fcfbf8;
+    border: 1px solid var(--border);
+    border-radius: 16px;
+    padding: 16px;
+  }
+
+  .tree {
+    margin-top: 16px;
+    max-height: 400px;
+    overflow: auto;
+    font-family: ui-monospace, monospace;
+    line-height: 1.5;
+    background: #f9f4ea;
+    padding: 16px;
+    border-radius: 16px;
+  }
+
+  .tree-node {
+    margin-left: 18px;
+  }
+
+  .node-winning {
+    color: var(--good);
+    font-weight: 700;
+  }
+
+  .node-losing {
+    color: var(--bad);
+    font-weight: 700;
+  }
+
+  .legend {
+    display: flex;
+    gap: 18px;
+    flex-wrap: wrap;
+  }
+
+  .legend-item {
+    display: flex;
+    align-items: center;
+    gap: 8px;
+  }
+
+  .legend-color {
+    width: 16px;
+    height: 16px;
+    border-radius: 4px;
+  }
+
+  @media (max-width: 1000px) {
+    .layout {
+      grid-template-columns: 1fr;
+    }
+  }
+</style>
+</head>
+<body>
+<div class="container">
+  <div class="header">
+    <h1>Interactive Chomp Strategy Visualizer</h1>
+    <p>
+      Chomp is a two-player mathematical strategy game. Clicking a chocolate square removes that square and every square below and to the right.
+      The navy blue poisoned square in the top-left corner loses the game for whoever is forced to eat it.
+      This visualization highlights winning and losing positions, optimal moves, and game-tree structure.
+    </p>
+  </div>
+
+  <div class="layout">
+    <div class="panel controls">
+      <div>
+        <label>Rows</label>
+        <select id="rows"></select>
+      </div>
+
+      <div>
+        <label>Columns</label>
+        <select id="cols"></select>
+      </div>
+
+      <button id="resetBtn">Reset Board</button>
+      <button id="undoBtn">Undo Move</button>
+      <button id="bestBtn">Show Optimal Move</button>
+
+      <div class="toggle">
+        <input type="checkbox" id="togglePositions" checked />
+        <label for="togglePositions">Highlight winning/losing states</label>
+      </div>
+
+      
+
+      <div class="toggle">
+        <input type="checkbox" id="showStar" checked />
+        <label for="showStar">Show optimal move star</label>
+      </div>
+
+      <div>
+        <label>Game Tree Depth</label>
+        <input type="range" min="1" max="5" value="3" id="depthSlider" />
+      </div>
+
+      <button id="treeBtn">Generate Game Tree</button>
+
+      <div class="card">
+        <h3>How Strategy Works</h3>
+        <p>
+          A position is <strong>winning</strong> if the current player can move to a losing position.
+          A position is <strong>losing</strong> if every move gives the opponent a winning position.
+        </p>
+      </div>
+    </div>
+
+    <div class="board-area">
+      <div class="panel">
+        <div class="status">
+          <div id="turnLabel">Current Player: Player 1</div>
+          <div style="display:flex; gap:10px; align-items:center; flex-wrap:wrap;">
+            <div id="player1Status" class="badge winning">Player 1</div>
+            <div id="player2Status" class="badge losing">Player 2</div>
+            <div id="positionBadge" class="badge winning">Winning Position</div>
+          </div>
+        </div>
+
+        <div style="height:18px"></div>
+
+        <div class="legend">
+          <div class="legend-item">
+            <div class="legend-color" style="background:#1e3a8a"></div>
+            <span>Poison Square</span>
+          </div>
+          <div class="legend-item">
+            <div class="legend-color" style="background:#7f5539"></div>
+            <span>Chocolate</span>
+          </div>
+          <div class="legend-item">
+            <div class="legend-color" style="background:#2a9d8f"></div>
+            <span>Winning Position</span>
+          </div>
+          <div class="legend-item">
+            <div class="legend-color" style="background:#90f5e8"></div>
+            <span>Winning Move (W)</span>
+          </div>
+          <div class="legend-item">
+            <div class="legend-color" style="background:#ffd6d6"></div>
+            <span>Losing Move (L)</span>
+          </div>
+          <div class="legend-item">
+            <div class="legend-color" style="background:#9b2226"></div>
+            <span>Losing Position</span>
+          </div>
+        </div>
+
+        <div style="height:20px"></div>
+
+        <div id="board" class="board"></div>
+      </div>
+
+      <div class="info-grid">
+        <div class="panel">
+          <h2>Position Analysis</h2>
+          <div id="analysis"></div>
+        </div>
+
+        <div class="panel">
+          <h2>Move History</h2>
+          <div id="history"></div>
+        </div>
+      </div>
+
+      <div class="panel">
+        <h2>Game Tree</h2>
+        <div id="tree" class="tree"></div>
+      </div>
+    </div>
+  </div>
+</div>
+
+<script>
+const rowsSelect = document.getElementById('rows');
+const colsSelect = document.getElementById('cols');
+const boardEl = document.getElementById('board');
+const analysisEl = document.getElementById('analysis');
+const historyEl = document.getElementById('history');
+const treeEl = document.getElementById('tree');
+const turnLabel = document.getElementById('turnLabel');
+const positionBadge = document.getElementById('positionBadge');
+
+const player1Status = document.getElementById('player1Status');
+const player2Status = document.getElementById('player2Status');
+
+const showWL = document.getElementById('togglePositions');
+const showStar = document.getElementById('showStar');
+const depthSlider = document.getElementById('depthSlider');
+
+for (let i = 1; i <= 8; i++) {
+  rowsSelect.innerHTML += `<option value="${i}">${i}</option>`;
+  colsSelect.innerHTML += `<option value="${i}">${i}</option>`;
+}
+
+rowsSelect.value = 4;
+colsSelect.value = 6;
+
+let board = [];
+let history = [];
+let currentPlayer = 1;
+const memo = new Map();
+
+function createBoard(r, c) {
+  board = [];
+  for (let i = 0; i < r; i++) {
+    board.push(Array(c).fill(true));
+  }
+  history = [];
+  currentPlayer = 1;
+  render();
+}
+
+function serialize(b) {
+  return b.map(r => r.map(v => v ? 1 : 0).join('')).join('|');
+}
+
+function cloneBoard(b) {
+  return b.map(r => [...r]);
+}
+
+function isOnlyPoisonLeft(b) {
+  let count = 0;
+  for (let r = 0; r < b.length; r++) {
+    for (let c = 0; c < b[0].length; c++) {
+      if (b[r][c]) count++;
+    }
+  }
+  return count === 1 && b[0][0];
+}
+
+function availableMoves(b) {
+  const moves = [];
+  for (let r = 0; r < b.length; r++) {
+    for (let c = 0; c < b[0].length; c++) {
+      if (b[r][c] && !(r === 0 && c === 0)) {
+        moves.push([r, c]);
+      }
+    }
+  }
+  return moves;
+}
+
+function applyMove(b, row, col) {
+  const nb = cloneBoard(b);
+  for (let r = row; r < nb.length; r++) {
+    for (let c = col; c < nb[0].length; c++) {
+      nb[r][c] = false;
+    }
+  }
+  return nb;
+}
+
+function isWinning(b) {
+  const key = serialize(b);
+  if (memo.has(key)) return memo.get(key);
+
+  if (isOnlyPoisonLeft(b)) {
+    memo.set(key, false);
+    return false;
+  }
+
+  const moves = availableMoves(b);
+
+  for (const [r, c] of moves) {
+    const next = applyMove(b, r, c);
+    if (!isWinning(next)) {
+      memo.set(key, true);
+      return true;
+    }
+  }
+
+  memo.set(key, false);
+  return false;
+}
+
+function bestMove(b) {
+  const moves = availableMoves(b);
+
+  for (const [r, c] of moves) {
+    const next = applyMove(b, r, c);
+    if (!isWinning(next)) {
+      return [r, c];
+    }
+  }
+
+  return moves[0] || null;
+}
+
+function render() {
+  boardEl.innerHTML = '';
+  boardEl.style.gridTemplateColumns = `repeat(${board[0].length}, 52px)`;
+
+  const optimal = bestMove(board);
+
+  for (let r = 0; r < board.length; r++) {
+    for (let c = 0; c < board[0].length; c++) {
+      const sq = document.createElement('div');
+      sq.className = 'square';
+
+      if (!board[r][c]) sq.classList.add('removed');
+      if (r === 0 && c === 0) sq.classList.add('poison');
+
+      if (board[r][c] && !(r === 0 && c === 0)) {
+        if (showWL.checked) {
+          const next = applyMove(board, r, c);
+          const moveWins = !isWinning(next);
+
+          if (moveWins) {
+            sq.classList.add('winmove');
+          } else {
+            sq.classList.add('losemove');
+          }
+        }
+      }
+
+      if (showStar.checked && optimal && optimal[0] === r && optimal[1] === c) {
+        sq.classList.add('best');
+      }
+
+      sq.onclick = () => move(r, c);
+      boardEl.appendChild(sq);
+    }
+  }
+
+  const winning = isWinning(board);
+  positionBadge.textContent = winning ? 'Winning Position' : 'Losing Position';
+  positionBadge.className = 'badge ' + (winning ? 'winning' : 'losing');
+
+  turnLabel.textContent = `Current Player: Player ${currentPlayer}`;
+
+  if (currentPlayer === 1) {
+    player1Status.className = 'badge winning';
+    player2Status.className = 'badge losing';
+  } else {
+    player1Status.className = 'badge losing';
+    player2Status.className = 'badge winning';
+  }
+
+  analysisEl.innerHTML = `
+    <div class="card">
+      <strong>Current Position:</strong><br>
+      ${winning ? 'Player ' + currentPlayer + ' has a winning strategy.' : 'Player ' + currentPlayer + ' is in a losing position if opponent plays perfectly.'}
+    </div>
+    <div class="card" style="margin-top:12px">
+      <strong>Optimal Move:</strong><br>
+      ${optimal ? `Row ${optimal[0]+1}, Column ${optimal[1]+1}` : 'No safe moves'}
+    </div>
+  `;
+
+  historyEl.innerHTML = history.length
+    ? history.map((m, i) => `<div>${i+1}. Player ${m.player}: (${m.row+1}, ${m.col+1})</div>`).join('')
+    : '<div>No moves yet.</div>';
+}
+
+function spawnConfetti() {
+  const colors = ['#ffffff', '#B9D9EB', '#7AAED6', '#1e3a8a'];
+  const count = 80;
+
+  for (let i = 0; i < count; i++) {
+    const c = document.createElement('div');
+    c.style.position = 'fixed';
+    c.style.left = Math.random() * window.innerWidth + 'px';
+    c.style.top = '-10px';
+    c.style.width = '8px';
+    c.style.height = '8px';
+    c.style.background = colors[Math.floor(Math.random() * colors.length)];
+    c.style.zIndex = 9999;
+    c.style.opacity = Math.random();
+    c.style.transform = 'rotate(' + (Math.random() * 360) + 'deg)';
+    document.body.appendChild(c);
+
+    const fall = setInterval(() => {
+      const top = parseFloat(c.style.top);
+      c.style.top = top + 5 + 'px';
+
+      if (top > window.innerHeight) {
+        clearInterval(fall);
+        c.remove();
+      }
+    }, 20);
+  }
+}
+
+function move(r, c) {
+  if (!board[r][c]) return;
+
+  history.push({ player: currentPlayer, row: r, col: c, board: cloneBoard(board) });
+
+  board = applyMove(board, r, c);
+
+  const gameOver = (r === 0 && c === 0);
+  if (gameOver) {
+    spawnConfetti();
+    setTimeout(() => {
+      alert(`Player ${currentPlayer} ate the poison square and loses.`);
+    }, 300);
+  }
+
+  currentPlayer = currentPlayer === 1 ? 2 : 1;
+  render();
+}
+
+function undo() {
+  const last = history.pop();
+  if (!last) return;
+  board = last.board;
+  currentPlayer = last.player;
+  render();
+}
+
+function canonicalKey(b) {
+  // normalize board using symmetry (horizontal + vertical reflections)
+  const h = b.map(r => [...r].reverse());
+  const v = [...b].reverse();
+  const hv = v.map(r => [...r].reverse());
+
+  const enc = (x) => x.map(r => r.map(v => v ? 1 : 0).join('')).join('|');
+
+  return [enc(b), enc(h), enc(v), enc(hv)].sort()[0];
+}
+
+const seenTree = new Set();
+
+function treeHTML(b, depth, indent = 0) {
+  const key = canonicalKey(b);
+  if (seenTree.has(key)) {
+    return `<div class="tree-node" style="margin-left:${indent}px;color:#888">(symmetric position skipped)</div>`;
+  }
+  seenTree.add(key);
+
+  const winning = isWinning(b);
+  const cls = winning ? 'node-winning' : 'node-losing';
+
+  let html = `<div class="tree-node ${cls}" style="margin-left:${indent}px">
+    ${winning ? 'WIN' : 'LOSE'}
+  </div>`;
+
+  if (depth <= 0) return html;
+
+  const moves = availableMoves(b);
+
+  for (const [r, c] of moves) {
+    const next = applyMove(b, r, c);
+    html += `<div class="tree-node" style="margin-left:${indent+18}px">
+      Move (${r+1}, ${c+1})
+    </div>`;
+    html += treeHTML(next, depth - 1, indent + 36);
+  }
+
+  return html;
+}
+
+rowsSelect.onchange = () => createBoard(+rowsSelect.value, +colsSelect.value);
+colsSelect.onchange = () => createBoard(+rowsSelect.value, +colsSelect.value);
+
+document.getElementById('resetBtn').onclick = () => {
+  createBoard(+rowsSelect.value, +colsSelect.value);
+};
+
+document.getElementById('undoBtn').onclick = undo;
+
+document.getElementById('bestBtn').onclick = () => {
+  const bm = bestMove(board);
+  if (!bm) return;
+  alert(`Optimal move: Row ${bm[0]+1}, Column ${bm[1]+1}`);
+};
+
+document.getElementById('treeBtn').onclick = () => {
+  treeEl.innerHTML = treeHTML(board, +depthSlider.value);
+};
+
+createBoard(4, 6);
+</script>
+</body>
+</html>

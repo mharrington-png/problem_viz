@@ -1,0 +1,360 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+<meta charset="UTF-8" />
+<meta name="viewport" content="width=device-width, initial-scale=1.0"/>
+
+<title>Interactive GCD & LCM Explorer</title>
+
+<style>
+
+*{
+  box-sizing:border-box;
+}
+
+body{
+  margin:0;
+  padding:2rem;
+  font-family:Arial, sans-serif;
+  background:#f4f7fb;
+  color:#1e293b;
+}
+
+.container{
+  max-width:1200px;
+  margin:auto;
+}
+
+h1{
+  text-align:center;
+  margin-bottom:0.5rem;
+}
+
+.subtitle{
+  text-align:center;
+  color:#64748b;
+  margin-bottom:2rem;
+}
+
+.controls{
+  background:white;
+  padding:1rem;
+  border-radius:16px;
+  display:flex;
+  gap:1rem;
+  flex-wrap:wrap;
+  justify-content:center;
+  align-items:center;
+  margin-bottom:2rem;
+  box-shadow:0 4px 12px rgba(0,0,0,0.08);
+}
+
+input{
+  padding:0.55rem;
+  border-radius:10px;
+  border:1px solid #cbd5e1;
+  width:80px;
+  font-size:1rem;
+}
+
+button{
+  padding:0.7rem 1.3rem;
+  border:none;
+  border-radius:10px;
+  background:#2563eb;
+  color:white;
+  cursor:pointer;
+  font-weight:bold;
+}
+
+button:hover{
+  background:#1d4ed8;
+}
+
+.panel{
+  background:white;
+  padding:1.5rem;
+  border-radius:18px;
+  margin-bottom:1.5rem;
+  box-shadow:0 4px 12px rgba(0,0,0,0.08);
+}
+
+.equation{
+  background:#eff6ff;
+  padding:0.6rem;
+  border-radius:8px;
+  margin-bottom:0.6rem;
+  font-family:monospace;
+}
+
+.dotGrid{
+  display:flex;
+  flex-wrap:wrap;
+  gap:8px;
+  margin-top:1rem;
+}
+
+.dot{
+  width:28px;
+  height:28px;
+  border-radius:50%;
+
+  display:flex;
+  align-items:center;
+  justify-content:center;
+
+  color:white;
+  font-size:0.72rem;
+  font-weight:bold;
+
+  transition:0.25s;
+}
+
+.success{
+  color:#15803d;
+  font-weight:bold;
+}
+
+.fail{
+  color:#dc2626;
+  font-weight:bold;
+}
+
+.timeline{
+  margin-top:1rem;
+}
+
+.tickRow{
+  display:flex;
+  align-items:center;
+  margin-bottom:1rem;
+  flex-wrap:wrap;
+}
+
+.tickLabel{
+  width:70px;
+  font-weight:bold;
+}
+
+.tick{
+  width:28px;
+  height:28px;
+  border-radius:50%;
+  background:#cbd5e1;
+  margin-right:5px;
+
+  display:flex;
+  align-items:center;
+  justify-content:center;
+
+  font-size:0.62rem;
+  font-weight:bold;
+  color:#0f172a;
+}
+
+.active{
+  background:#2563eb;
+  color:white;
+}
+
+.lcmHit{
+  background:#22c55e !important;
+  transform:scale(1.25);
+}
+
+.highlight{
+  color:#2563eb;
+  font-weight:bold;
+}
+
+.results{
+  font-size:1.2rem;
+  line-height:1.8;
+}
+
+.legend{
+  display:flex;
+  gap:1rem;
+  flex-wrap:wrap;
+  margin-top:1rem;
+}
+
+.legendItem{
+  display:flex;
+  align-items:center;
+  gap:0.4rem;
+}
+
+.legendCircle{
+  width:18px;
+  height:18px;
+  border-radius:50%;
+}
+
+</style>
+</head>
+
+<body>
+
+<div class="container">
+
+  <h1>Interactive GCD & LCM Explorer</h1>
+
+  <div class="subtitle">
+    Visualize divisibility, multiples, Euclid's algorithm, and synchronization
+  </div>
+
+  <div class="controls">
+
+    <label>
+      A:
+      <input id="numA" type="number" value="24" min="1">
+    </label>
+
+    <label>
+      B:
+      <input id="numB" type="number" value="18" min="1">
+    </label>
+
+    <label>
+      Guess GCD:
+      <input id="guess" type="number" value="6" min="1">
+    </label>
+
+    <button onclick="generate()">
+      Explore
+    </button>
+
+  </div>
+
+  <div class="panel">
+
+    <h2>1. Euclidean Algorithm</h2>
+
+    <div id="steps"></div>
+
+  </div>
+
+  <div class="panel">
+
+    <h2>2. Grouped Dot Visualization</h2>
+
+    <h3>A Dots</h3>
+    <div id="dotsA" class="dotGrid"></div>
+
+    <h3>B Dots</h3>
+    <div id="dotsB" class="dotGrid"></div>
+
+    <div id="groupMessage"></div>
+
+  </div>
+
+  <div class="panel">
+
+    <h2>3. LCM Timeline</h2>
+    <div id="timeline"></div>
+
+  </div>
+
+  <div class="panel results">
+
+    <div id="gcdResult"></div>
+    <div id="lcmResult"></div>
+
+  </div>
+
+</div>
+
+<script>
+
+const colors = ["#3b82f6","#ef4444","#22c55e","#f59e0b","#a855f7"];
+
+function gcdSteps(a,b){
+  const steps=[];
+  while(b!==0){
+    const q=Math.floor(a/b);
+    const r=a%b;
+    steps.push(`${a} = ${b} × ${q} + ${r}`);
+    a=b;b=r;
+  }
+  return {gcd:a,steps};
+}
+
+function renderDots(id,n,groupSize,other){
+  const c=document.getElementById(id);
+  c.innerHTML="";
+  for(let i=1;i<=n;i++){
+    const d=document.createElement("div");
+    d.className="dot";
+    const g=Math.floor((i-1)/groupSize);
+    d.style.background=colors[g%colors.length];
+    d.textContent=i;
+    if(i%other===0){
+      d.style.outline="3px solid #22c55e";
+      d.style.transform="scale(1.1)";
+    }
+    c.appendChild(d);
+  }
+}
+
+function renderTimeline(a,b,lcm){
+  const c=document.getElementById("timeline");
+  c.innerHTML="";
+
+  function row(step,label){
+    const r=document.createElement("div");
+    r.className="tickRow";
+
+    const t=document.createElement("div");
+    t.className="tickLabel";
+    t.textContent=label;
+    r.appendChild(t);
+
+    for(let i=1;i<=lcm;i++){
+      const tick=document.createElement("div");
+      tick.className="tick";
+      tick.textContent=i;
+
+      if(i%step===0) tick.classList.add("active");
+      if(i===lcm) tick.classList.add("lcmHit");
+
+      r.appendChild(tick);
+    }
+    c.appendChild(r);
+  }
+
+  row(a,`A=${a}`);
+  row(b,`B=${b}`);
+}
+
+function generate(){
+  const a=+numA.value;
+  const b=+numB.value;
+  const g=+guess.value;
+
+  const res=gcdSteps(a,b);
+  const gcd=res.gcd;
+  const lcm=(a*b)/gcd;
+
+  steps.innerHTML=res.steps.map(s=>`<div class="equation">${s}</div>`).join("");
+
+  renderDots("dotsA",a,g,b);
+  renderDots("dotsB",b,g,a);
+
+  groupMessage.textContent =
+    (a%g===0 && b%g===0)
+    ? "✔ Common divisor"
+    : "✘ Not a common divisor";
+
+  gcdResult.innerHTML="GCD: <b>"+gcd+"</b>";
+  lcmResult.innerHTML="LCM: <b>"+lcm+"</b>";
+
+  renderTimeline(a,b,lcm);
+}
+
+generate();
+
+</script>
+
+</body>
+</html>

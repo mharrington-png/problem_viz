@@ -1,0 +1,788 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+<meta charset="UTF-8">
+<meta name="viewport" content="width=device-width, initial-scale=1.0">
+<title>Circular Seating Investigation</title>
+
+<link rel="preconnect" href="https://fonts.googleapis.com">
+<link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
+<link href="https://fonts.googleapis.com/css2?family=Inter:wght@400;500;600;700;800&display=swap" rel="stylesheet">
+
+<style>
+*{box-sizing:border-box}
+
+body{
+margin:0;
+font-family:'Inter',sans-serif;
+background:linear-gradient(180deg,#f6f9ff 0%,#edf2ff 100%);
+color:#1e293b;
+}
+
+.container{
+max-width:1500px;
+margin:auto;
+padding:30px;
+}
+
+.hero,.panel{
+background:white;
+border-radius:28px;
+padding:28px;
+box-shadow:0 10px 35px rgba(15,23,42,.08);
+margin-bottom:28px;
+}
+
+h1{
+margin-top:0;
+font-size:3rem;
+}
+
+p{
+line-height:1.8;
+color:#475569;
+}
+
+.layout{
+display:grid;
+grid-template-columns:360px 1fr;
+gap:28px;
+}
+
+.rule{
+padding:16px;
+border-radius:18px;
+background:#f8fbff;
+border:2px solid #dbeafe;
+margin-bottom:14px;
+line-height:1.7;
+}
+
+.workspace{
+display:grid;
+grid-template-columns:320px 1fr;
+gap:20px;
+}
+
+.pool{
+background:#f8fafc;
+border-radius:24px;
+padding:20px;
+border:2px dashed #cbd5e1;
+min-height:650px;
+}
+
+.guest-list{
+display:flex;
+flex-wrap:wrap;
+gap:14px;
+}
+
+.table-area{
+display:flex;
+justify-content:center;
+align-items:center;
+min-height:720px;
+}
+
+.table{
+width:620px;
+height:620px;
+border-radius:50%;
+position:relative;
+background:radial-gradient(circle at center,#dbeafe 0%,#93c5fd 100%);
+border:14px solid white;
+box-shadow:0 20px 50px rgba(37,99,235,.22);
+}
+
+.seat{
+position:absolute;
+width:92px;
+height:92px;
+border-radius:50%;
+border:3px dashed rgba(255,255,255,.85);
+display:flex;
+align-items:center;
+justify-content:center;
+color:white;
+font-weight:700;
+}
+
+.guest{
+width:92px;
+height:92px;
+border-radius:50%;
+display:flex;
+flex-direction:column;
+align-items:center;
+justify-content:center;
+text-align:center;
+font-size:.8rem;
+font-weight:700;
+cursor:grab;
+user-select:none;
+box-shadow:0 12px 24px rgba(15,23,42,.14);
+transition:transform .2s ease;
+}
+
+.guest:hover{
+transform:scale(1.08);
+}
+
+.male{
+background:linear-gradient(135deg,#bfdbfe,#60a5fa);
+}
+
+.female{
+background:linear-gradient(135deg,#fbcfe8,#f472b6);
+}
+
+.minor{
+border:5px solid #f59e0b;
+}
+
+.adult{
+border:5px solid #10b981;
+}
+
+.feedback{
+margin-top:22px;
+padding:22px;
+border-radius:20px;
+background:linear-gradient(135deg,#f8fafc,#eef2ff);
+line-height:1.9;
+}
+
+.math{
+margin-top:20px;
+padding:22px;
+border-radius:20px;
+background:#f8fafc;
+border:2px solid #dbeafe;
+}
+
+.bigmath{
+font-size:1.5rem;
+font-weight:800;
+color:#2563eb;
+margin:12px 0;
+}
+
+.example{
+display:grid;
+grid-template-columns:1fr 1fr;
+gap:20px;
+margin-top:18px;
+}
+
+.example-card{
+background:white;
+padding:18px;
+border-radius:18px;
+border:2px solid #dbeafe;
+text-align:center;
+}
+
+.progress{
+height:14px;
+background:#dbeafe;
+border-radius:999px;
+overflow:hidden;
+margin-top:18px;
+}
+
+.progress-fill{
+height:100%;
+width:33%;
+background:#2563eb;
+transition:width .4s ease;
+}
+
+.celebration{
+position:fixed;
+inset:0;
+display:none;
+justify-content:center;
+align-items:center;
+background:rgba(15,23,42,.84);
+z-index:1000;
+}
+
+.celebration.active{
+display:flex;
+}
+
+.card{
+background:white;
+padding:44px;
+border-radius:28px;
+max-width:650px;
+width:92%;
+text-align:center;
+}
+
+button{
+border:none;
+background:#2563eb;
+color:white;
+padding:14px 22px;
+border-radius:14px;
+font-size:1rem;
+cursor:pointer;
+margin-top:18px;
+}
+
+@media(max-width:1200px){
+.layout,.workspace,.example{
+grid-template-columns:1fr;
+}
+
+.table{
+width:460px;
+height:460px;
+}
+
+.seat,.guest{
+width:72px;
+height:72px;
+font-size:.7rem;
+}
+}
+</style>
+</head>
+
+<body>
+
+<div class="container">
+
+<div class="hero">
+
+<h1>Circular Seating Investigation</h1>
+
+<p>
+You are helping organize a wedding dinner. Guests must sit around a circular table while following several social restrictions.
+Your goal is to discover valid seating arrangements AND understand how mathematicians count circular arrangements.
+</p>
+
+<div class="progress">
+<div class="progress-fill" id="progressFill"></div>
+</div>
+
+</div>
+
+<div class="layout">
+
+<div class="panel">
+
+<h2 id="levelTitle">Challenge 1</h2>
+
+<div id="rules"></div>
+
+<div class="math">
+
+<h2>How Circular Counting Works</h2>
+
+<p>
+If guests sit in a straight LINE, we count every possible order.
+</p>
+
+<div class="bigmath" id="lineFormula"></div>
+
+<p>
+But around a CIRCLE, rotating everyone together does NOT create a new arrangement.
+</p>
+
+<div class="example">
+
+<div class="example-card">
+<strong>Arrangement A</strong>
+<p>A → B → C → D</p>
+</div>
+
+<div class="example-card">
+<strong>Rotated Version</strong>
+<p>D → A → B → C</p>
+</div>
+
+</div>
+
+<p>
+These are actually the SAME circular arrangement because everyone kept the same neighbors.
+</p>
+
+<div class="bigmath" id="circleFormula"></div>
+
+<p>
+Now consider mirror images:
+</p>
+
+<div class="example">
+
+<div class="example-card">
+<strong>Clockwise</strong>
+<p>A → B → C → D</p>
+</div>
+
+<div class="example-card">
+<strong>Mirror Image</strong>
+<p>A → D → C → B</p>
+</div>
+
+</div>
+
+<p>
+These are reflections of each other. If mirror images count as the same arrangement, we divide by 2.
+</p>
+
+<div class="bigmath" id="mirrorFormula"></div>
+
+<div id="currentMath"></div>
+
+</div>
+
+</div>
+
+<div class="panel">
+
+<div class="workspace">
+
+<div class="pool">
+<h2>Guest Pool</h2>
+
+<p>
+Drag guests onto the empty seats around the table.
+Double-click a seated guest to remove them.
+</p>
+
+<div class="guest-list" id="guestPool"></div>
+
+</div>
+
+<div>
+
+<div class="table-area">
+<div class="table" id="table"></div>
+</div>
+
+</div>
+
+</div>
+
+<div class="feedback" id="feedback">
+Begin by placing guests around the table.
+</div>
+
+</div>
+
+</div>
+
+</div>
+
+<div class="celebration" id="celebration">
+<div class="card">
+
+<div style="font-size:5rem">🎉</div>
+
+<h2 id="celebrationTitle">Challenge Solved!</h2>
+
+<p id="celebrationText" style="line-height:1.8;color:#475569;">
+You discovered a valid arrangement while exploring circular counting.
+</p>
+
+<button id="nextButton">Next Challenge</button>
+
+</div>
+</div>
+
+<script>
+const levels = [
+
+{
+title:'Challenge 1',
+rules:[
+'Men and women must alternate.',
+'The two younger guests cannot sit together.',
+'Alex and Brooke must sit together.'
+],
+guests:[
+{name:'Alex',gender:'male',age:'adult',icon:'👨'},
+{name:'Brooke',gender:'female',age:'adult',icon:'👩'},
+{name:'Chris',gender:'male',age:'minor',icon:'🧒'},
+{name:'Dana',gender:'female',age:'adult',icon:'👩'},
+{name:'Evan',gender:'male',age:'adult',icon:'👨'},
+{name:'Faith',gender:'female',age:'minor',icon:'🧒'}
+]
+},
+
+{
+title:'Challenge 2',
+rules:[
+'Men and women must alternate.',
+'The two younger guests cannot sit together.',
+'Alex and Brooke must sit together.',
+'Dana must sit directly opposite Alex.'
+],
+guests:[
+{name:'Alex',gender:'male',age:'adult',icon:'👨'},
+{name:'Brooke',gender:'female',age:'adult',icon:'👩'},
+{name:'Chris',gender:'male',age:'minor',icon:'🧒'},
+{name:'Dana',gender:'female',age:'adult',icon:'👩'},
+{name:'Evan',gender:'male',age:'adult',icon:'👨'},
+{name:'Faith',gender:'female',age:'minor',icon:'🧒'},
+{name:'Gabe',gender:'male',age:'adult',icon:'👨'},
+{name:'Hannah',gender:'female',age:'adult',icon:'👩'}
+]
+},
+
+{
+title:'Challenge 3',
+rules:[
+'Men and women must alternate.',
+'The two younger guests cannot sit together.',
+'Alex and Brooke must sit together.',
+'Dana must sit directly opposite Alex.',
+'Gabe cannot sit next to Hannah.'
+],
+guests:[
+{name:'Alex',gender:'male',age:'adult',icon:'👨'},
+{name:'Brooke',gender:'female',age:'adult',icon:'👩'},
+{name:'Chris',gender:'male',age:'minor',icon:'🧒'},
+{name:'Dana',gender:'female',age:'adult',icon:'👩'},
+{name:'Evan',gender:'male',age:'adult',icon:'👨'},
+{name:'Faith',gender:'female',age:'minor',icon:'🧒'},
+{name:'Gabe',gender:'male',age:'adult',icon:'👨'},
+{name:'Hannah',gender:'female',age:'adult',icon:'👩'},
+{name:'Ivan',gender:'male',age:'adult',icon:'👨'},
+{name:'Julia',gender:'female',age:'adult',icon:'👩'}
+]
+}
+
+];
+
+let levelIndex = 0;
+let guests = [];
+let seats = [];
+let draggedGuest = null;
+
+const guestPool = document.getElementById('guestPool');
+const table = document.getElementById('table');
+const feedback = document.getElementById('feedback');
+
+function factorial(n){
+let total = 1;
+for(let i=2;i<=n;i++) total*=i;
+return total;
+}
+
+function loadLevel(index){
+
+const level = levels[index];
+
+document.getElementById('levelTitle').textContent = level.title;
+document.getElementById('progressFill').style.width = `${((index+1)/levels.length)*100}%`;
+
+const rulesContainer = document.getElementById('rules');
+rulesContainer.innerHTML='';
+
+level.rules.forEach(rule=>{
+const div = document.createElement('div');
+div.className='rule';
+div.innerHTML = rule;
+rulesContainer.appendChild(div);
+});
+
+guests = JSON.parse(JSON.stringify(level.guests));
+seats = new Array(guests.length).fill(null);
+
+updateMath();
+
+renderPool();
+renderTable();
+
+feedback.innerHTML='Begin by placing guests around the table.';
+}
+
+function updateMath(){
+
+const n = guests.length;
+
+const lineTotal = factorial(n);
+const circleTotal = factorial(n-1);
+const mirrorTotal = circleTotal/2;
+
+document.getElementById('lineFormula').innerHTML =
+`${n}! = ${lineTotal.toLocaleString()} ways in a line`;
+
+document.getElementById('circleFormula').innerHTML =
+`${n}! ÷ ${n} = ${(n-1)}! = ${circleTotal.toLocaleString()} circular arrangements`;
+
+document.getElementById('mirrorFormula').innerHTML =
+`${circleTotal.toLocaleString()} ÷ 2 = ${mirrorTotal.toLocaleString()} distinct arrangements`;
+
+document.getElementById('currentMath').innerHTML = `
+<p>
+For this challenge:
+</p>
+
+<ul style="line-height:2;">
+<li>There are <strong>${n}</strong> guests.</li>
+<li>If they sat in a line, there would be <strong>${lineTotal.toLocaleString()}</strong> possible arrangements.</li>
+<li>Because the table is circular, we remove duplicate rotations and get <strong>${circleTotal.toLocaleString()}</strong> circular arrangements.</li>
+<li>If mirror images count as the same arrangement, only <strong>${mirrorTotal.toLocaleString()}</strong> arrangements remain.</li>
+<li>Your seating restrictions reduce the number of valid arrangements even more.</li>
+</ul>
+`;
+}
+
+function createGuestElement(guest){
+
+const div = document.createElement('div');
+
+div.className = `guest ${guest.gender} ${guest.age}`;
+
+div.innerHTML = `
+<div style="font-size:1.4rem">${guest.icon}</div>
+<div>${guest.name}</div>
+`;
+
+div.draggable = true;
+
+div.addEventListener('dragstart',()=>{
+draggedGuest = guest;
+});
+
+return div;
+}
+
+function renderPool(){
+
+guestPool.innerHTML='';
+
+guests.forEach(g=>{
+
+if(!seats.includes(g.name)){
+guestPool.appendChild(createGuestElement(g));
+}
+
+});
+
+}
+
+function renderTable(){
+
+table.innerHTML='';
+
+const radius = table.offsetWidth/2 - 78;
+const center = table.offsetWidth/2;
+
+for(let i=0;i<seats.length;i++){
+
+const angle = (Math.PI*2*i/seats.length)-Math.PI/2;
+
+const x = center + radius*Math.cos(angle)-46;
+const y = center + radius*Math.sin(angle)-46;
+
+const seat = document.createElement('div');
+
+seat.className='seat';
+seat.style.left=`${x}px`;
+seat.style.top=`${y}px`;
+
+seat.textContent=`Seat ${i+1}`;
+
+seat.addEventListener('dragover',(e)=>e.preventDefault());
+
+seat.addEventListener('drop',(e)=>{
+
+e.preventDefault();
+
+if(!draggedGuest) return;
+
+seats[i] = draggedGuest.name;
+
+renderPool();
+renderTable();
+evaluate();
+
+});
+
+if(seats[i]){
+
+const guest = guests.find(g=>g.name===seats[i]);
+
+const guestDiv = createGuestElement(guest);
+
+guestDiv.style.position='absolute';
+
+guestDiv.addEventListener('dblclick',()=>{
+seats[i]=null;
+renderPool();
+renderTable();
+evaluate();
+});
+
+seat.innerHTML='';
+seat.appendChild(guestDiv);
+
+}
+
+table.appendChild(seat);
+
+}
+
+}
+
+function arrangement(){
+return seats.map(name=>guests.find(g=>g.name===name));
+}
+
+function evaluate(){
+
+if(seats.includes(null)){
+feedback.innerHTML='Place all guests before checking the restrictions.';
+return;
+}
+
+const arr = arrangement();
+
+let valid = true;
+const messages = [];
+
+for(let i=0;i<arr.length;i++){
+
+const a = arr[i];
+const b = arr[(i+1)%arr.length];
+
+if(a.gender===b.gender){
+valid=false;
+messages.push('❌ Two guests of the same gender are sitting together.');
+break;
+}
+
+}
+
+if(valid){
+messages.push('✅ Gender alternation works.');
+}
+
+for(let i=0;i<arr.length;i++){
+
+const a = arr[i];
+const b = arr[(i+1)%arr.length];
+
+if(a.age==='minor' && b.age==='minor'){
+valid=false;
+messages.push('❌ The two younger guests are sitting together.');
+break;
+}
+
+}
+
+if(!messages.includes('❌ The two younger guests are sitting together.')){
+messages.push('✅ Younger guests are separated.');
+}
+
+const alex = arr.findIndex(g=>g.name==='Alex');
+const brooke = arr.findIndex(g=>g.name==='Brooke');
+
+const diff = Math.abs(alex-brooke);
+
+if(diff===1 || diff===arr.length-1){
+messages.push('✅ Alex and Brooke are together.');
+}else{
+valid=false;
+messages.push('❌ Alex and Brooke are not together.');
+}
+
+if(levelIndex >= 1){
+
+const dana = arr.findIndex(g=>g.name==='Dana');
+
+if(Math.abs(alex-dana)===arr.length/2){
+messages.push('✅ Dana is opposite Alex.');
+}else{
+valid=false;
+messages.push('❌ Dana is not opposite Alex.');
+}
+
+}
+
+if(levelIndex === 2){
+
+const gabe = arr.findIndex(g=>g.name==='Gabe');
+const hannah = arr.findIndex(g=>g.name==='Hannah');
+
+const d = Math.abs(gabe-hannah);
+
+if(d===1 || d===arr.length-1){
+valid=false;
+messages.push('❌ Gabe is sitting next to Hannah.');
+}else{
+messages.push('✅ Gabe and Hannah are separated.');
+}
+
+}
+
+messages.push('🔄 Rotating the table does NOT create a new arrangement.');
+messages.push('🪞 Mirror-image seatings count as the same arrangement.');
+
+feedback.innerHTML = messages.join('<br><br>');
+
+if(valid){
+showCelebration();
+}
+
+}
+
+function showCelebration(){
+
+document.getElementById('celebration').classList.add('active');
+
+if(levelIndex < levels.length-1){
+
+document.getElementById('celebrationTitle').textContent =
+'Challenge Solved!';
+
+document.getElementById('celebrationText').textContent =
+'Great work. The next challenge adds even more restrictions and counting complexity.';
+
+document.getElementById('nextButton').textContent =
+'Next Challenge';
+
+}else{
+
+document.getElementById('celebrationTitle').textContent =
+'All Challenges Complete!';
+
+document.getElementById('celebrationText').textContent =
+'You explored how circular permutations work and how restrictions reduce the number of valid arrangements.';
+
+document.getElementById('nextButton').textContent =
+'Play Again';
+
+}
+
+}
+
+document.getElementById('nextButton').addEventListener('click',()=>{
+
+document.getElementById('celebration').classList.remove('active');
+
+if(levelIndex < levels.length-1){
+levelIndex++;
+}else{
+levelIndex = 0;
+}
+
+loadLevel(levelIndex);
+
+});
+
+window.addEventListener('resize',renderTable);
+
+loadLevel(0);
+
+</script>
+
+</body>
+</html>
